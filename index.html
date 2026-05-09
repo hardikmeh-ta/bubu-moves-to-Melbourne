@@ -2,8 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Amanda's Melbourne Move 🌏</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1918">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- iOS PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Move Planner">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
@@ -27,12 +42,14 @@
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
-button{font-family:inherit;cursor:pointer;transition:opacity .15s}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+button{font-family:inherit;cursor:pointer;transition:opacity .15s;-webkit-tap-highlight-color:transparent}
 button:hover{opacity:.8}
-input,select,textarea{font-family:inherit;background:var(--surface2);color:var(--text);border:1px solid var(--border-med);border-radius:var(--radius);padding:7px 10px;font-size:13px;outline:none;width:100%}
+input,select,textarea{font-family:inherit;background:var(--surface2);color:var(--text);border:1px solid var(--border-med);border-radius:var(--radius);padding:7px 10px;font-size:13px;outline:none;width:100%;-webkit-appearance:none;appearance:none}
 input:focus,select:focus,textarea:focus{border-color:var(--text3);box-shadow:0 0 0 3px rgba(0,0,0,0.05)}
 textarea{resize:vertical;min-height:60px}
+/* iOS select arrow */
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239b9a97' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
 a{color:inherit}
 .loading-screen{display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px;color:var(--text2)}
 .spinner{width:28px;height:28px;border:2px solid var(--border-med);border-top-color:var(--text2);border-radius:50%;animation:spin .7s linear infinite}
@@ -62,6 +79,18 @@ a{color:inherit}
 .inv-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:8px}
 .progress-ring-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .progress-ring-label{position:absolute;text-align:center;line-height:1.2}
+/* Safe area / notch support */
+.sticky-header{padding-top:max(11px, env(safe-area-inset-top));padding-left:max(18px, env(safe-area-inset-left));padding-right:max(18px, env(safe-area-inset-right))}
+/* Install banner */
+#install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border-med);padding:12px 18px;padding-bottom:max(12px,env(safe-area-inset-bottom));z-index:200;align-items:center;gap:12px}
+#install-banner.show{display:flex}
+/* Mobile: stack inventory form selects */
+@media(max-width:480px){
+  .inv-form-grid{grid-template-columns:1fr 1fr !important}
+  .inv-form-grid-3{grid-template-columns:1fr !important}
+  .phase-bar{width:40px}
+  .task-row{padding:10px 12px}
+}
 </style>
 </head>
 <body>
@@ -189,6 +218,19 @@ async function addInventoryItem(item,sellTask){
 async function saveInventoryNotes(id,notes){
   await db.from('inventory').update({notes}).eq('id',id);
 }
+async function addCustomTask(task){
+  const {error}=await db.from('tasks').insert(task);
+  if(error)throw error;
+}
+async function updateTaskOwner(id,owner){
+  await db.from('tasks').update({owner}).eq('id',id);
+}
+async function updateTaskDueDate(id,due_by){
+  await db.from('tasks').update({due_by}).eq('id',id);
+}
+async function deleteTask(id){
+  await db.from('tasks').delete().eq('id',id);
+}
 async function removeInventoryItem(item){
   if(item.photo_urls&&item.photo_urls.length){
     const paths=item.photo_urls.map(extractStoragePath).filter(Boolean);
@@ -246,19 +288,52 @@ function CalBtn({task}){
         e('i',{className:'ti ti-brand-apple','aria-hidden':'true'}),'Apple Calendar')));
 }
 
+// ── OwnerPill — inline owner selector ────────────────────────────────────────
+function OwnerPill({taskId,owner,onOwnerChange}){
+  const[open,setOpen]=useState(false);
+  const ref=useRef();
+  useEffect(()=>{
+    if(!open)return;
+    const h=ev=>{if(ref.current&&!ref.current.contains(ev.target))setOpen(false)};
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+  },[open]);
+  const ownerColors={Amanda:'var(--info)',Hardik:'var(--success)',Both:'var(--warning)'};
+  const ownerBg={Amanda:'var(--info-bg)',Hardik:'var(--success-bg)',Both:'var(--warning-bg)'};
+  return e('div',{ref,style:{position:'relative',display:'inline-flex'}},
+    e('button',{onClick:ev=>{ev.stopPropagation();setOpen(!open)},
+      style:{display:'inline-flex',alignItems:'center',gap:3,padding:'2px 7px',borderRadius:99,border:'1px solid transparent',fontSize:11,fontWeight:500,cursor:'pointer',
+        background:ownerBg[owner]||'var(--surface2)',color:ownerColors[owner]||'var(--text2)'}},
+      e('i',{className:'ti ti-user',style:{fontSize:10},'aria-hidden':'true'}),owner,
+      e('i',{className:'ti ti-chevron-down',style:{fontSize:9,marginLeft:1},'aria-hidden':'true'})),
+    open&&e('div',{style:{position:'absolute',top:'calc(100% + 4px)',left:0,background:'var(--surface)',border:'1px solid var(--border-med)',borderRadius:'var(--radius)',padding:4,zIndex:300,minWidth:110,boxShadow:'0 4px 12px rgba(0,0,0,0.12)'}},
+      ['Amanda','Hardik','Both'].map(o=>e('button',{key:o,
+        onClick:ev=>{ev.stopPropagation();onOwnerChange(taskId,o);setOpen(false)},
+        style:{display:'flex',alignItems:'center',gap:6,width:'100%',padding:'6px 9px',border:'none',borderRadius:'var(--radius)',background:owner===o?ownerBg[o]:'transparent',color:owner===o?ownerColors[o]:'var(--text)',fontSize:12,cursor:'pointer',fontWeight:owner===o?600:400}},
+        e('i',{className:'ti ti-user',style:{fontSize:11},'aria-hidden':'true'}),o))));
+}
+
 // ── TaskRow ───────────────────────────────────────────────────────────────────
-function TaskRow({task:t,onToggle,onNotesChange,role,last,phColor}){
+function TaskRow({task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onDelete,role,last,phColor}){
   const[editNotes,setEditNotes]=useState(false);
+  const[editDate,setEditDate]=useState(false);
   const[notes,setNotes]=useState(t.notes||'');
   const[saving,setSaving]=useState(false);
-  const handleBlur=async()=>{
+  const handleNotesBlur=async()=>{
     if(notes===t.notes){setEditNotes(false);return;}
     setSaving(true);
     await saveTaskNotes(t.id,notes);
     onNotesChange(t.id,notes);
     setSaving(false);setEditNotes(false);
   };
+  const handleDateChange=async ev=>{
+    const val=ev.target.value;
+    if(!val)return;
+    setEditDate(false);
+    await updateTaskDueDate(t.id,val);
+    onDueDateChange(t.id,val);
+  };
   const canCheck=role==='amanda';
+  const isCustom=t.id.startsWith('custom_');
   return e('div',{className:`task-row${t.done?' done':''}`,style:{background:t.done?'var(--surface2)':'var(--surface)'}},
     e('button',{
       className:`task-check${canCheck?' checkable':''}${t.done?' checked':''}`,
@@ -270,18 +345,29 @@ function TaskRow({task:t,onToggle,onNotesChange,role,last,phColor}){
       e('div',{style:{fontSize:14,fontWeight:500,color:t.done?'var(--text3)':'var(--text)',textDecoration:t.done?'line-through':'none'}},t.title),
       e('div',{style:{display:'flex',gap:6,marginTop:4,flexWrap:'wrap',alignItems:'center'}},
         e('span',{className:'badge',style:{background:CAT_BG[t.category]||'var(--surface2)',color:CAT_COLORS[t.category]||'var(--text2)'}},t.category),
-        e('span',{style:{fontSize:11,color:'var(--text3)'}},e('i',{className:'ti ti-user',style:{marginRight:2,fontSize:10},'aria-hidden':'true'}),t.owner),
-        e('span',{style:{fontSize:11,color:'var(--text3)'}},e('i',{className:'ti ti-calendar',style:{marginRight:2,fontSize:10},'aria-hidden':'true'}),'due ',fmt(t.due_by)),
+        e(OwnerPill,{taskId:t.id,owner:t.owner,onOwnerChange}),
+        editDate
+          ? e('input',{type:'date',defaultValue:t.due_by||'',autoFocus:true,
+              onChange:handleDateChange,
+              onBlur:()=>setEditDate(false),
+              style:{fontSize:11,padding:'1px 5px',width:130,borderRadius:'var(--radius)',border:'1px solid var(--border-med)',background:'var(--surface)',color:'var(--text)'}})
+          : e('button',{onClick:()=>setEditDate(true),
+              style:{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,color:'var(--text3)',border:'none',background:'none',cursor:'pointer',padding:'2px 4px',borderRadius:4},
+              title:'Click to change date'},
+              e('i',{className:'ti ti-calendar',style:{fontSize:10},'aria-hidden':'true'}),'due ',fmt(t.due_by)),
         t.priority==='high'&&!t.done&&e('span',{style:{fontSize:10,color:'var(--danger)',fontWeight:600}},'● high')),
       editNotes
         ? e('div',{className:'notes-edit'},
-            e('textarea',{value:notes,onChange:ev=>setNotes(ev.target.value),onBlur:handleBlur,autoFocus:true,placeholder:'Add a note…',style:{fontSize:12,minHeight:52}}),
+            e('textarea',{value:notes,onChange:ev=>setNotes(ev.target.value),onBlur:handleNotesBlur,autoFocus:true,placeholder:'Add a note…',style:{fontSize:12,minHeight:52}}),
             saving&&e('span',{style:{fontSize:11,color:'var(--text3)'}},'Saving…'))
         : e('div',{style:{display:'flex',alignItems:'flex-start',gap:6,marginTop:4}},
             notes&&e('div',{className:'notes-view'},notes),
-            role==='amanda'&&e('button',{onClick:()=>setEditNotes(true),style:{padding:'2px 6px',fontSize:11,border:'none',background:'none',color:'var(--text3)'}},
+            e('button',{onClick:()=>setEditNotes(true),style:{padding:'2px 6px',fontSize:11,border:'none',background:'none',color:'var(--text3)'}},
               e('i',{className:'ti ti-pencil',style:{fontSize:11},'aria-hidden':'true'}),notes?'':' Add note'))),
-    e(CalBtn,{task:t}));
+    e('div',{style:{display:'flex',gap:4,flexShrink:0,alignItems:'flex-start'}},
+      e(CalBtn,{task:t}),
+      isCustom&&e('button',{onClick:()=>onDelete(t.id),className:'btn btn-sm',style:{padding:'4px 7px',color:'var(--danger)',borderColor:'var(--danger-border)',fontSize:12},title:'Delete this task'},
+        e('i',{className:'ti ti-trash','aria-hidden':'true'}))));
 }
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
@@ -341,11 +427,47 @@ function Overview({tasks,inventory,setTab,role}){
             e('div',{style:{fontSize:11,color:'var(--text2)'}},d))))));
 }
 
+// ── Add Task Form ─────────────────────────────────────────────────────────────
+function AddTaskForm({onAdd,onCancel}){
+  const today=new Date().toISOString().split('T')[0];
+  const[form,setForm]=useState({title:'',category:'Visa & Legal',owner:'Amanda',phase:'now',due_by:today,priority:'medium',notes:''});
+  const[saving,setSaving]=useState(false);
+  const set=k=>ev=>setForm(p=>({...p,[k]:ev.target.value}));
+  const submit=async()=>{
+    if(!form.title.trim())return;
+    setSaving(true);
+    const task={id:`custom_${Date.now()}`,title:form.title.trim(),category:form.category,owner:form.owner,phase:form.phase,due_by:form.due_by,priority:form.priority,notes:form.notes,done:false,inventory_id:null};
+    try{
+      await addCustomTask(task);
+      onAdd(task);
+    }catch(err){console.error(err);}
+    setSaving(false);
+  };
+  return e('div',{style:{background:'var(--surface)',border:'1px solid var(--border-med)',borderRadius:'var(--radius-lg)',padding:16,marginBottom:14}},
+    e('div',{style:{fontSize:13,fontWeight:600,marginBottom:10,color:'var(--text)'}},'Add a task'),
+    e('input',{placeholder:'Task title (required)',value:form.title,onChange:set('title'),style:{marginBottom:8}}),
+    e('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}},
+      e('select',{value:form.category,onChange:set('category')},CATS.map(c=>e('option',{key:c},c))),
+      e('select',{value:form.owner,onChange:set('owner')},
+        ['Amanda','Hardik','Both'].map(o=>e('option',{key:o},o)))),
+    e('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}},
+      e('select',{value:form.phase,onChange:set('phase')},
+        PHASES.map(ph=>e('option',{key:ph.id,value:ph.id},ph.label,' ('+ph.sub+')'))),
+      e('input',{type:'date',value:form.due_by,onChange:set('due_by')}),
+      e('select',{value:form.priority,onChange:set('priority')},
+        ['high','medium','low'].map(p=>e('option',{key:p},p)))),
+    e('textarea',{placeholder:'Notes (optional)',value:form.notes,onChange:set('notes'),style:{marginBottom:10,minHeight:48,fontSize:12}}),
+    e('div',{style:{display:'flex',gap:8}},
+      e('button',{onClick:submit,className:'btn btn-primary',type:'button',disabled:saving},saving?'Adding…':'Add task'),
+      e('button',{onClick:onCancel,className:'btn',type:'button'},'Cancel')));
+}
+
 // ── Checklist Tab ─────────────────────────────────────────────────────────────
-function Checklist({tasks,onToggle,onNotesChange,role}){
+function Checklist({tasks,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onAddTask,onDeleteTask,role}){
   const[exp,setExp]=useState({});
   const[cat,setCat]=useState('All');
   const[own,setOwn]=useState('All');
+  const[adding,setAdding]=useState(false);
   const filtered=tasks.filter(t=>(cat==='All'||t.category===cat)&&(own==='All'||t.owner===own));
   return e('div',null,
     e('div',{style:{display:'flex',gap:8,marginBottom:13,flexWrap:'wrap',alignItems:'center'}},
@@ -353,8 +475,12 @@ function Checklist({tasks,onToggle,onNotesChange,role}){
         e('option',null,'All'),CATS.map(c=>e('option',{key:c},c))),
       e('select',{value:own,onChange:ev=>setOwn(ev.target.value),style:{width:'auto',minWidth:110}},
         e('option',null,'All'),['Amanda','Hardik','Both'].map(o=>e('option',{key:o},o))),
-      e('button',{onClick:()=>dlICS(filtered.filter(t=>!t.done)),className:'btn',style:{marginLeft:'auto'}},
-        e('i',{className:'ti ti-download','aria-hidden':'true'}),'Export remaining')),
+      e('div',{style:{marginLeft:'auto',display:'flex',gap:8}},
+        e('button',{onClick:()=>setAdding(!adding),className:`btn${adding?'':' btn-primary'}`,type:'button'},
+          e('i',{className:`ti ${adding?'ti-x':'ti-plus'}`,'aria-hidden':'true'}),adding?'Cancel':'Add task'),
+        e('button',{onClick:()=>dlICS(filtered.filter(t=>!t.done)),className:'btn',type:'button'},
+          e('i',{className:'ti ti-download','aria-hidden':'true'}),'Export'))),
+    adding&&e(AddTaskForm,{onAdd:task=>{onAddTask(task);setAdding(false)},onCancel:()=>setAdding(false)}),
     PHASES.map(ph=>{
       const pt=filtered.filter(t=>t.phase===ph.id);
       if(!pt.length)return null;
@@ -370,7 +496,7 @@ function Checklist({tasks,onToggle,onNotesChange,role}){
           e('span',{style:{fontSize:11,color:'var(--text3)',minWidth:42,textAlign:'right'}},d,'/',pt.length),
           e('i',{className:`ti ti-chevron-${open?'up':'down'}`,style:{color:'var(--text3)',fontSize:14,flexShrink:0},'aria-hidden':'true'})),
         open&&e('div',{style:{background:'var(--surface)'}},
-          pt.map((t,i)=>e(TaskRow,{key:t.id,task:t,onToggle,onNotesChange,role,last:i===pt.length-1,phColor:ph.color}))));}));
+          pt.map((t,i)=>e(TaskRow,{key:t.id,task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onDelete:onDeleteTask,role,last:i===pt.length-1,phColor:ph.color}))));}));
 }
 
 // ── Inventory Card ────────────────────────────────────────────────────────────
@@ -531,6 +657,21 @@ function App(){
   };
   const handlePhotosChange=(id,urls)=>setInventory(p=>p.map(i=>i.id===id?{...i,photo_urls:urls}:i));
   const handleInvNotes=(id,notes)=>setInventory(p=>p.map(i=>i.id===id?{...i,notes}:i));
+  const handleAddCustomTask=useCallback(task=>{
+    setTasks(p=>[...p,task]);
+  },[]);
+  const handleOwnerChange=useCallback(async(id,owner)=>{
+    setTasks(p=>p.map(t=>t.id===id?{...t,owner}:t));
+    await updateTaskOwner(id,owner);
+  },[]);
+  const handleDueDateChange=useCallback(async(id,due_by)=>{
+    setTasks(p=>p.map(t=>t.id===id?{...t,due_by}:t));
+  },[]);
+  const handleDeleteTask=useCallback(async id=>{
+    if(!window.confirm('Delete this custom task?'))return;
+    setTasks(p=>p.filter(t=>t.id!==id));
+    await deleteTask(id);
+  },[]);
   const setR=r=>{setRole(r);localStorage.setItem('move_role2',r)};
 
   if(loading)return e('div',{className:'loading-screen'},e('div',{className:'spinner'}),e('span',null,'Loading your plan…'));
@@ -538,7 +679,7 @@ function App(){
 
   return e('div',{style:{minHeight:'100vh'}},
     // Header
-    e('div',{style:{borderBottom:'1px solid var(--border)',padding:'11px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',background:'var(--surface)',position:'sticky',top:0,zIndex:100}},
+    e('div',{style:{borderBottom:'1px solid var(--border)',padding:'11px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',background:'var(--surface)',position:'sticky',top:0,zIndex:100,paddingTop:'max(11px, env(safe-area-inset-top))'},className:'sticky-header'},
       e('div',null,
         e('div',{style:{fontSize:15,fontWeight:600}},"Amanda's Melbourne Move ✈️"),
         e('div',{style:{fontSize:11,color:'var(--text2)',marginTop:1}},'July 29, 2026 · ',daysLeft(),' days to go')),
@@ -552,11 +693,35 @@ function App(){
     // Content
     e('div',{style:{padding:18,maxWidth:860,margin:'0 auto'}},
       tab==='overview'&&e(Overview,{tasks,inventory,setTab,role}),
-      tab==='checklist'&&e(Checklist,{tasks,onToggle:handleToggle,onNotesChange:handleTaskNotes,role}),
+      tab==='checklist'&&e(Checklist,{tasks,onToggle:handleToggle,onNotesChange:handleTaskNotes,onOwnerChange:handleOwnerChange,onDueDateChange:handleDueDateChange,onAddTask:handleAddCustomTask,onDeleteTask:handleDeleteTask,role}),
       tab==='inventory'&&e(Inventory,{inventory,onAdd:handleAddItem,onRemove:handleRemoveItem,onPhotosChange:handlePhotosChange,onNotesChange:handleInvNotes,role})));
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+</script>
+<!-- iOS install prompt banner -->
+<div id="install-banner">
+  <div style="flex:1">
+    <div style="font-size:13px;font-weight:600">Add to Home Screen</div>
+    <div style="font-size:12px;color:#6b6a67;margin-top:1px">Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong> to install this as an app</div>
+  </div>
+  <button onclick="document.getElementById('install-banner').classList.remove('show');localStorage.setItem('banner-dismissed','1')"
+    style="padding:4px 10px;border-radius:6px;border:1px solid rgba(0,0,0,0.15);background:transparent;font-size:13px;flex-shrink:0">
+    Dismiss
+  </button>
+</div>
+
+<script>
+// Show iOS install banner if not already installed / dismissed
+(function(){
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isStandalone = window.navigator.standalone === true;
+  var dismissed = localStorage.getItem('banner-dismissed');
+  if(isIOS && !isStandalone && !dismissed){
+    document.getElementById('install-banner').classList.add('show');
+  }
+})();
+
 </script>
 </body>
 </html>
