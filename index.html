@@ -66,15 +66,18 @@ a{color:inherit}
 .cal-menu{position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border-med);border-radius:var(--radius-lg);padding:4px;z-index:200;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.12)}
 .cal-menu a,.cal-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;color:var(--text);text-decoration:none;font-size:13px;border-radius:var(--radius);border:none;background:none;text-align:left;cursor:pointer}
 .cal-menu a:hover,.cal-menu button:hover{background:var(--surface2)}
-.phase-bar{height:3px;background:var(--border);border-radius:99px;overflow:hidden;width:60px}
+.menu-item{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;color:var(--text);font-size:13px;border-radius:var(--radius);cursor:pointer;text-align:left;text-decoration:none;font-family:inherit}
+.menu-item:hover{background:var(--surface2)}
+.phase-bar{height:3px;background:var(--border);border-radius:99px;overflow:hidden;width:48px}
 .phase-bar-fill{height:100%;border-radius:99px;transition:width .4s}
-.task-row{padding:11px 16px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid var(--border)}
+.task-row{padding:10px 16px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid var(--border)}
 .task-row:last-child{border-bottom:none}
-.task-row.done{opacity:.5}
+.task-row.done{opacity:.45}
+.task-row.pri-high{border-left:2px solid var(--danger)}
 .task-check{width:16px;height:16px;border-radius:4px;flex-shrink:0;margin-top:2px;border:1.5px solid var(--border-med);background:transparent;display:flex;align-items:center;justify-content:center;cursor:default;transition:border-color .2s,background .2s}
 .task-check.checkable{cursor:pointer}
 .task-check.checked{background:currentColor}
-.notes-view{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5}
+.notes-view{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5;font-style:italic}
 .notes-edit{font-size:12px;margin-top:6px}
 .inv-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:8px}
 .progress-ring-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -288,86 +291,77 @@ function CalBtn({task}){
         e('i',{className:'ti ti-brand-apple','aria-hidden':'true'}),'Apple Calendar')));
 }
 
-// ── OwnerPill — inline owner selector ────────────────────────────────────────
-function OwnerPill({taskId,owner,onOwnerChange}){
-  const[open,setOpen]=useState(false);
-  const ref=useRef();
-  useEffect(()=>{
-    if(!open)return;
-    const h=ev=>{if(ref.current&&!ref.current.contains(ev.target))setOpen(false)};
-    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
-  },[open]);
-  const ownerColors={Amanda:'var(--info)',Hardik:'var(--success)',Both:'var(--warning)'};
-  const ownerBg={Amanda:'var(--info-bg)',Hardik:'var(--success-bg)',Both:'var(--warning-bg)'};
-  return e('div',{ref,style:{position:'relative',display:'inline-flex'}},
-    e('button',{onClick:ev=>{ev.stopPropagation();setOpen(!open)},
-      style:{display:'inline-flex',alignItems:'center',gap:3,padding:'2px 7px',borderRadius:99,border:'1px solid transparent',fontSize:11,fontWeight:500,cursor:'pointer',
-        background:ownerBg[owner]||'var(--surface2)',color:ownerColors[owner]||'var(--text2)'}},
-      e('i',{className:'ti ti-user',style:{fontSize:10},'aria-hidden':'true'}),owner,
-      e('i',{className:'ti ti-chevron-down',style:{fontSize:9,marginLeft:1},'aria-hidden':'true'})),
-    open&&e('div',{style:{position:'absolute',top:'calc(100% + 4px)',left:0,background:'var(--surface)',border:'1px solid var(--border-med)',borderRadius:'var(--radius)',padding:4,zIndex:300,minWidth:110,boxShadow:'0 4px 12px rgba(0,0,0,0.12)'}},
-      ['Amanda','Hardik','Both'].map(o=>e('button',{key:o,
-        onClick:ev=>{ev.stopPropagation();onOwnerChange(taskId,o);setOpen(false)},
-        style:{display:'flex',alignItems:'center',gap:6,width:'100%',padding:'6px 9px',border:'none',borderRadius:'var(--radius)',background:owner===o?ownerBg[o]:'transparent',color:owner===o?ownerColors[o]:'var(--text)',fontSize:12,cursor:'pointer',fontWeight:owner===o?600:400}},
-        e('i',{className:'ti ti-user',style:{fontSize:11},'aria-hidden':'true'}),o))));
-}
-
 // ── TaskRow ───────────────────────────────────────────────────────────────────
-function TaskRow({task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onDelete,role,last,phColor}){
+function TaskRow({task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onDelete,role,phColor}){
+  const[menuOpen,setMenuOpen]=useState(false);
   const[editNotes,setEditNotes]=useState(false);
   const[editDate,setEditDate]=useState(false);
   const[notes,setNotes]=useState(t.notes||'');
   const[saving,setSaving]=useState(false);
+  const menuRef=useRef();
+  useEffect(()=>{
+    if(!menuOpen)return;
+    const h=ev=>{if(menuRef.current&&!menuRef.current.contains(ev.target))setMenuOpen(false)};
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+  },[menuOpen]);
   const handleNotesBlur=async()=>{
     if(notes===t.notes){setEditNotes(false);return;}
-    setSaving(true);
-    await saveTaskNotes(t.id,notes);
-    onNotesChange(t.id,notes);
-    setSaving(false);setEditNotes(false);
+    setSaving(true);await saveTaskNotes(t.id,notes);onNotesChange(t.id,notes);setSaving(false);setEditNotes(false);
   };
   const handleDateChange=async ev=>{
-    const val=ev.target.value;
-    if(!val)return;
-    setEditDate(false);
-    await updateTaskDueDate(t.id,val);
-    onDueDateChange(t.id,val);
+    const val=ev.target.value;if(!val)return;
+    setEditDate(false);await updateTaskDueDate(t.id,val);onDueDateChange(t.id,val);
   };
   const canCheck=role==='amanda';
   const isCustom=t.id.startsWith('custom_');
-  return e('div',{className:`task-row${t.done?' done':''}`,style:{background:t.done?'var(--surface2)':'var(--surface)'}},
-    e('button',{
-      className:`task-check${canCheck?' checkable':''}${t.done?' checked':''}`,
+  const ownerColor={Amanda:'var(--info)',Hardik:'var(--success)',Both:'var(--warning)'};
+  return e('div',{className:`task-row${t.done?' done':''}${t.priority==='high'&&!t.done?' pri-high':''}`,style:{background:t.done?'var(--surface2)':'var(--surface)'}},
+    e('button',{className:`task-check${canCheck?' checkable':''}${t.done?' checked':''}`,
       style:{color:phColor,borderColor:t.done?phColor:'var(--border-med)'},
       onClick:()=>canCheck&&onToggle(t.id,t.done),
-      title:canCheck?'Mark done':'View only — switch to Amanda mode to check off'},
+      title:canCheck?'Mark done':'View only'},
       t.done&&e('i',{className:'ti ti-check',style:{fontSize:9,color:'#fff'},'aria-hidden':'true'})),
     e('div',{style:{flex:1,minWidth:0}},
-      e('div',{style:{fontSize:14,fontWeight:500,color:t.done?'var(--text3)':'var(--text)',textDecoration:t.done?'line-through':'none'}},t.title),
-      e('div',{style:{display:'flex',gap:6,marginTop:4,flexWrap:'wrap',alignItems:'center'}},
-        e('span',{className:'badge',style:{background:CAT_BG[t.category]||'var(--surface2)',color:CAT_COLORS[t.category]||'var(--text2)'}},t.category),
-        e(OwnerPill,{taskId:t.id,owner:t.owner,onOwnerChange}),
+      e('div',{style:{fontSize:14,fontWeight:500,color:t.done?'var(--text3)':'var(--text)',textDecoration:t.done?'line-through':'none',lineHeight:1.4}},t.title),
+      e('div',{style:{display:'flex',gap:6,marginTop:3,flexWrap:'wrap',alignItems:'center'}},
+        e('span',{style:{fontSize:11,fontWeight:500,color:CAT_COLORS[t.category]||'var(--text3)'}},t.category),
+        e('span',{style:{fontSize:11,color:'var(--text3)'}},'·'),
+        e('span',{style:{fontSize:11,fontWeight:500,color:ownerColor[t.owner]||'var(--text3)'}},t.owner),
+        e('span',{style:{fontSize:11,color:'var(--text3)'}},'·'),
         editDate
-          ? e('input',{type:'date',defaultValue:t.due_by||'',autoFocus:true,
-              onChange:handleDateChange,
-              onBlur:()=>setEditDate(false),
-              style:{fontSize:11,padding:'1px 5px',width:130,borderRadius:'var(--radius)',border:'1px solid var(--border-med)',background:'var(--surface)',color:'var(--text)'}})
+          ? e('input',{type:'date',defaultValue:t.due_by||'',autoFocus:true,onChange:handleDateChange,onBlur:()=>setEditDate(false),
+              style:{fontSize:11,padding:'1px 6px',width:124,borderRadius:4,border:'1px solid var(--border-med)',background:'var(--surface)',color:'var(--text)'}})
           : e('button',{onClick:()=>setEditDate(true),
-              style:{display:'inline-flex',alignItems:'center',gap:3,fontSize:11,color:'var(--text3)',border:'none',background:'none',cursor:'pointer',padding:'2px 4px',borderRadius:4},
-              title:'Click to change date'},
-              e('i',{className:'ti ti-calendar',style:{fontSize:10},'aria-hidden':'true'}),'due ',fmt(t.due_by)),
-        t.priority==='high'&&!t.done&&e('span',{style:{fontSize:10,color:'var(--danger)',fontWeight:600}},'● high')),
+              style:{fontSize:11,color:'var(--text3)',border:'none',background:'none',cursor:'pointer',padding:0},title:'Edit date'},
+              fmt(t.due_by))),
       editNotes
         ? e('div',{className:'notes-edit'},
             e('textarea',{value:notes,onChange:ev=>setNotes(ev.target.value),onBlur:handleNotesBlur,autoFocus:true,placeholder:'Add a note…',style:{fontSize:12,minHeight:52}}),
             saving&&e('span',{style:{fontSize:11,color:'var(--text3)'}},'Saving…'))
-        : e('div',{style:{display:'flex',alignItems:'flex-start',gap:6,marginTop:4}},
-            notes&&e('div',{className:'notes-view'},notes),
-            e('button',{onClick:()=>setEditNotes(true),style:{padding:'2px 6px',fontSize:11,border:'none',background:'none',color:'var(--text3)'}},
-              e('i',{className:'ti ti-pencil',style:{fontSize:11},'aria-hidden':'true'}),notes?'':' Add note'))),
-    e('div',{style:{display:'flex',gap:4,flexShrink:0,alignItems:'flex-start'}},
-      e(CalBtn,{task:t}),
-      isCustom&&e('button',{onClick:()=>onDelete(t.id),className:'btn btn-sm',style:{padding:'4px 7px',color:'var(--danger)',borderColor:'var(--danger-border)',fontSize:12},title:'Delete this task'},
-        e('i',{className:'ti ti-trash','aria-hidden':'true'}))));
+        : t.notes&&e('div',{className:'notes-view'},t.notes)),
+    e('div',{ref:menuRef,style:{position:'relative',flexShrink:0}},
+      e('button',{onClick:ev=>{ev.stopPropagation();setMenuOpen(!menuOpen)},
+        style:{padding:'2px 6px',border:'none',background:'none',color:'var(--text3)',fontSize:18,lineHeight:1,cursor:'pointer',borderRadius:'var(--radius)',letterSpacing:1}},
+        '···'),
+      menuOpen&&e('div',{style:{position:'absolute',right:0,top:'calc(100% + 2px)',background:'var(--surface)',border:'1px solid var(--border-med)',borderRadius:'var(--radius-lg)',padding:4,zIndex:300,minWidth:185,boxShadow:'0 8px 24px rgba(0,0,0,0.12)'},onClick:ev=>ev.stopPropagation()},
+        e('button',{onClick:()=>{setEditNotes(true);setMenuOpen(false)},className:'menu-item'},
+          e('i',{className:'ti ti-pencil','aria-hidden':'true'}),t.notes?'Edit notes':'Add notes'),
+        e('button',{onClick:()=>{setEditDate(true);setMenuOpen(false)},className:'menu-item'},
+          e('i',{className:'ti ti-calendar','aria-hidden':'true'}),'Change date'),
+        e('div',{style:{padding:'5px 10px 2px',fontSize:10,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.07em'}},'Assign to'),
+        ['Amanda','Hardik','Both'].map(o=>e('button',{key:o,
+          onClick:()=>{onOwnerChange(t.id,o);setMenuOpen(false)},className:'menu-item',
+          style:{paddingLeft:22,color:t.owner===o?ownerColor[o]:'var(--text)',fontWeight:t.owner===o?600:400}},
+          t.owner===o&&e('i',{className:'ti ti-check',style:{fontSize:10,marginRight:2},'aria-hidden':'true'}),o)),
+        e('div',{style:{height:1,background:'var(--border)',margin:'4px 0'}}),
+        e('a',{href:gCalURL(t),target:'_blank',rel:'noreferrer',onClick:()=>setMenuOpen(false),className:'menu-item'},
+          e('i',{className:'ti ti-brand-google','aria-hidden':'true'}),'Google Calendar'),
+        e('button',{onClick:()=>{dlICS([t]);setMenuOpen(false)},className:'menu-item'},
+          e('i',{className:'ti ti-brand-apple','aria-hidden':'true'}),'Apple Calendar'),
+        isCustom&&e('div',null,
+          e('div',{style:{height:1,background:'var(--border)',margin:'4px 0'}}),
+          e('button',{onClick:()=>{onDelete(t.id);setMenuOpen(false)},className:'menu-item',style:{color:'var(--danger)'}},
+            e('i',{className:'ti ti-trash','aria-hidden':'true'}),'Delete task')))));
 }
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
@@ -471,30 +465,29 @@ function Checklist({tasks,onToggle,onNotesChange,onOwnerChange,onDueDateChange,o
   const filtered=tasks.filter(t=>(cat==='All'||t.category===cat)&&(own==='All'||t.owner===own));
   return e('div',null,
     e('div',{style:{display:'flex',gap:8,marginBottom:13,flexWrap:'wrap',alignItems:'center'}},
-      e('select',{value:cat,onChange:ev=>setCat(ev.target.value),style:{width:'auto',minWidth:160}},
-        e('option',null,'All'),CATS.map(c=>e('option',{key:c},c))),
-      e('select',{value:own,onChange:ev=>setOwn(ev.target.value),style:{width:'auto',minWidth:110}},
-        e('option',null,'All'),['Amanda','Hardik','Both'].map(o=>e('option',{key:o},o))),
-      e('div',{style:{marginLeft:'auto',display:'flex',gap:8}},
+      e('select',{value:cat,onChange:ev=>setCat(ev.target.value),style:{width:'auto'}},
+        e('option',null,'All categories'),CATS.map(c=>e('option',{key:c},c))),
+      e('select',{value:own,onChange:ev=>setOwn(ev.target.value),style:{width:'auto'}},
+        e('option',null,'All people'),['Amanda','Hardik','Both'].map(o=>e('option',{key:o},o))),
+      e('div',{style:{marginLeft:'auto',display:'flex',gap:6}},
         e('button',{onClick:()=>setAdding(!adding),className:`btn${adding?'':' btn-primary'}`,type:'button'},
           e('i',{className:`ti ${adding?'ti-x':'ti-plus'}`,'aria-hidden':'true'}),adding?'Cancel':'Add task'),
-        e('button',{onClick:()=>dlICS(filtered.filter(t=>!t.done)),className:'btn',type:'button'},
-          e('i',{className:'ti ti-download','aria-hidden':'true'}),'Export'))),
+        e('button',{onClick:()=>dlICS(filtered.filter(t=>!t.done)),className:'btn',type:'button',title:'Export remaining to calendar'},
+          e('i',{className:'ti ti-download','aria-hidden':'true'})))),
     adding&&e(AddTaskForm,{onAdd:task=>{onAddTask(task);setAdding(false)},onCancel:()=>setAdding(false)}),
     PHASES.map(ph=>{
       const pt=filtered.filter(t=>t.phase===ph.id);
       if(!pt.length)return null;
       const d=pt.filter(t=>t.done).length,p=Math.round(d/pt.length*100),open=exp[ph.id]!==false;
-      return e('div',{key:ph.id,style:{marginBottom:8,border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',overflow:'hidden'}},
-        e('button',{onClick:()=>setExp(prev=>({...prev,[ph.id]:!open})),style:{width:'100%',background:'var(--surface2)',border:'none',padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:10}},
-          e('span',{style:{width:8,height:8,borderRadius:'50%',background:ph.color,flexShrink:0}}),
-          e('div',{style:{flex:1,textAlign:'left'}},
-            e('span',{style:{fontSize:13,fontWeight:600}},ph.label),
-            e('span',{style:{fontSize:11,color:'var(--text3)',marginLeft:8}},ph.sub)),
-          e('div',{className:'phase-bar'},
-            e('div',{className:'phase-bar-fill',style:{width:`${p}%`,background:ph.color}})),
-          e('span',{style:{fontSize:11,color:'var(--text3)',minWidth:42,textAlign:'right'}},d,'/',pt.length),
-          e('i',{className:`ti ti-chevron-${open?'up':'down'}`,style:{color:'var(--text3)',fontSize:14,flexShrink:0},'aria-hidden':'true'})),
+      return e('div',{key:ph.id,style:{marginBottom:6,border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',overflow:'hidden'}},
+        e('button',{onClick:()=>setExp(prev=>({...prev,[ph.id]:!open})),
+          style:{width:'100%',background:'var(--surface2)',border:'none',padding:'9px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:10}},
+          e('span',{style:{width:7,height:7,borderRadius:'50%',background:ph.color,flexShrink:0}}),
+          e('span',{style:{fontSize:13,fontWeight:600,flex:1,textAlign:'left'}},ph.label),
+          e('span',{style:{fontSize:11,color:'var(--text3)',marginRight:4}},ph.sub),
+          e('div',{className:'phase-bar'},e('div',{className:'phase-bar-fill',style:{width:`${p}%`,background:ph.color}})),
+          e('span',{style:{fontSize:11,color:'var(--text3)',minWidth:36,textAlign:'right'}},d,'/',pt.length),
+          e('i',{className:`ti ti-chevron-${open?'up':'down'}`,style:{color:'var(--text3)',fontSize:13,flexShrink:0,marginLeft:4},'aria-hidden':'true'})),
         open&&e('div',{style:{background:'var(--surface)'}},
           pt.map((t,i)=>e(TaskRow,{key:t.id,task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onDelete:onDeleteTask,role,last:i===pt.length-1,phColor:ph.color}))));}));
 }
@@ -566,16 +559,19 @@ function InvCard({item,onRemove,onPhotosChange,onNotesChange}){
 // ── Inventory Add Form ────────────────────────────────────────────────────────
 function InvForm({onAdd,onCancel}){
   const[form,setForm]=useState({name:'',quantity:1,category:'Large Furniture',condition:'Good',decision:'Sell',notes:''});
+  const[submitting,setSubmitting]=useState(false);
   const cfg=SELL_CFG[form.category]||SELL_CFG['Other'];
   const set=k=>ev=>setForm(p=>({...p,[k]:ev.target.value}));
   const submit=async()=>{
-    if(!form.name.trim())return;
+    if(!form.name.trim()||submitting)return;
+    setSubmitting(true);
     const id=`inv_${Date.now()}`;
     const item={id,name:form.name.trim(),quantity:+form.quantity,category:form.category,condition:form.condition,decision:form.decision,notes:form.notes,sell_by:cfg.sell_by,list_by:cfg.list_by,platform:cfg.platform,photo_urls:[]};
     let sellTask=null;
     if(form.decision==='Sell')sellTask={id:`sell_${Date.now()}`,title:`List & sell: ${item.name} (×${item.quantity})`,category:'Selling',owner:'Amanda',phase:cfg.phase,due_by:cfg.sell_by,priority:'medium',notes:`List by ${fmt(cfg.list_by)} on ${cfg.platform}. Sell by ${fmt(cfg.sell_by)}.`,done:false,inventory_id:id};
     await addInventoryItem(item,sellTask);
     onAdd(item,sellTask);
+    setSubmitting(false);
   };
   return e('div',{style:{background:'var(--surface)',border:'1px solid var(--border-med)',borderRadius:'var(--radius-lg)',padding:18,marginBottom:16}},
     e('div',{style:{display:'grid',gridTemplateColumns:'1fr 72px',gap:8,marginBottom:8}},
@@ -595,12 +591,12 @@ function InvForm({onAdd,onCancel}){
       e('i',{className:'ti ti-clock',style:{marginRight:5},'aria-hidden':'true'}),'List by ',e('strong',null,fmt(cfg.list_by)),' · sell by ',e('strong',null,fmt(cfg.sell_by)),' · ',cfg.platform),
     e('textarea',{placeholder:'Notes (optional) — condition details, purchase info, listing notes…',value:form.notes,onChange:set('notes'),style:{marginBottom:10,minHeight:52,fontSize:12}}),
     e('div',{style:{display:'flex',gap:8}},
-      e('button',{onClick:submit,className:'btn btn-primary',type:'button'},'Add item'),
+      e('button',{onClick:submit,className:'btn btn-primary',type:'button',disabled:submitting},submitting?'Adding…':'Add item'),
       e('button',{onClick:onCancel,className:'btn',type:'button'},'Cancel')));
 }
 
 // ── Inventory Tab ─────────────────────────────────────────────────────────────
-function Inventory({inventory,onAdd,onRemove,onPhotosChange,onNotesChange,role}){
+function Inventory({inventory,onAdd,onRemove,onPhotosChange,onNotesChange}){
   const[adding,setAdding]=useState(false);
   const grouped=INV_CATS.map(c=>({c,items:inventory.filter(i=>i.category===c)})).filter(g=>g.items.length);
   const handleAdd=(item,sellTask)=>{onAdd(item,sellTask);setAdding(false)};
@@ -664,7 +660,7 @@ function App(){
     setTasks(p=>p.map(t=>t.id===id?{...t,owner}:t));
     await updateTaskOwner(id,owner);
   },[]);
-  const handleDueDateChange=useCallback(async(id,due_by)=>{
+  const handleDueDateChange=useCallback((id,due_by)=>{
     setTasks(p=>p.map(t=>t.id===id?{...t,due_by}:t));
   },[]);
   const handleDeleteTask=useCallback(async id=>{
