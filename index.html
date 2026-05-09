@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amanda's Melbourne Move 🌏</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+:root {
+  --bg:#f6f5f3;--surface:#ffffff;--surface2:#f0efed;--border:rgba(0,0,0,0.09);--border-med:rgba(0,0,0,0.16);
+  --text:#1a1918;--text2:#6b6a67;--text3:#9b9a97;
+  --danger:#dc2626;--warning:#d97706;--success:#16a34a;--info:#2563eb;
+  --danger-bg:#fef2f2;--warning-bg:#fffbeb;--success-bg:#f0fdf4;--info-bg:#eff6ff;
+  --danger-border:rgba(220,38,38,0.2);--warning-border:rgba(217,119,6,0.2);
+  --success-border:rgba(22,163,74,0.2);--info-border:rgba(37,99,235,0.2);
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#111110;--surface:#1c1c1a;--surface2:#242422;--border:rgba(255,255,255,0.09);--border-med:rgba(255,255,255,0.16);
+    --text:#ede8e3;--text2:#9b9a97;--text3:#6b6a67;
+    --danger-bg:rgba(220,38,38,0.12);--warning-bg:rgba(217,119,6,0.12);
+    --success-bg:rgba(22,163,74,0.12);--info-bg:rgba(37,99,235,0.12);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+button{font-family:inherit;cursor:pointer;transition:opacity .15s}
+button:hover{opacity:.8}
+input,select,textarea{font-family:inherit;background:var(--surface2);color:var(--text);border:1px solid var(--border-med);border-radius:var(--radius);padding:7px 10px;font-size:13px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--text3);box-shadow:0 0 0 3px rgba(0,0,0,0.05)}
+textarea{resize:vertical;min-height:60px}
+a{color:inherit}
+.loading-screen{display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px;color:var(--text2)}
+.spinner{width:28px;height:28px;border:2px solid var(--border-med);border-top-color:var(--text2);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--radius);border:1px solid var(--border-med);background:var(--surface2);color:var(--text2);font-size:13px;font-weight:500}
+.btn-primary{background:var(--text);color:var(--surface);border-color:var(--text)}
+.btn-sm{padding:4px 9px;font-size:12px}
+.photo-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.photo-thumb{width:72px;height:72px;border-radius:var(--radius);object-fit:cover;border:1px solid var(--border);cursor:pointer}
+.photo-thumb-wrap{position:relative;width:72px;height:72px}
+.photo-del{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:10px;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;opacity:0}
+.photo-thumb-wrap:hover .photo-del{opacity:1}
+.cal-menu{position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border-med);border-radius:var(--radius-lg);padding:4px;z-index:200;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+.cal-menu a,.cal-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;color:var(--text);text-decoration:none;font-size:13px;border-radius:var(--radius);border:none;background:none;text-align:left;cursor:pointer}
+.cal-menu a:hover,.cal-menu button:hover{background:var(--surface2)}
+.phase-bar{height:3px;background:var(--border);border-radius:99px;overflow:hidden;width:60px}
+.phase-bar-fill{height:100%;border-radius:99px;transition:width .4s}
+.task-row{padding:11px 16px;display:flex;align-items:flex-start;gap:10px;border-bottom:1px solid var(--border)}
+.task-row:last-child{border-bottom:none}
+.task-row.done{opacity:.5}
+.task-check{width:16px;height:16px;border-radius:4px;flex-shrink:0;margin-top:2px;border:1.5px solid var(--border-med);background:transparent;display:flex;align-items:center;justify-content:center;cursor:default;transition:border-color .2s,background .2s}
+.task-check.checkable{cursor:pointer}
+.task-check.checked{background:currentColor}
+.notes-view{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5}
+.notes-edit{font-size:12px;margin-top:6px}
+.inv-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:8px}
+.progress-ring-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.progress-ring-label{position:absolute;text-align:center;line-height:1.2}
+</style>
+</head>
+<body>
+<div id="root"><div class="loading-screen"><div class="spinner"></div><span>Loading your plan…</span></div></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+'use strict';
+const {useState,useEffect,useRef,useCallback} = React;
+const e = React.createElement;
+
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPA_URL = 'https://naamsroovplmjzazevvm.supabase.co';
+const SUPA_KEY = 'sb_publishable_rbQKMe3I9jkfKhUQas648w_O6FhaLzq';
+const {createClient} = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+const PHASES=[
+  {id:'now',label:'This week',sub:'May 9–16',color:'#dc2626'},
+  {id:'week8',label:'8–10 wks out',sub:'May 17 – Jun 7',color:'#d97706'},
+  {id:'week6',label:'6–8 wks out',sub:'Jun 8–21',color:'#ca8a04'},
+  {id:'week4',label:'4–6 wks out',sub:'Jun 22 – Jul 5',color:'#16a34a'},
+  {id:'week2',label:'2–4 wks out',sub:'Jul 6–19',color:'#16a34a'},
+  {id:'finalweek',label:'Final week',sub:'Jul 20–26',color:'#2563eb'},
+  {id:'lastdays',label:'Last 2 days',sub:'Jul 27–28',color:'#7c3aed'},
+  {id:'arrival',label:'After arrival',sub:'Jul 30+',color:'#16a34a'},
+];
+
+const CAT_COLORS={'Visa & Legal':'#2563eb','Banking & Finance':'#d97706','Apartment & Housing':'#dc2626','Shipping':'#7c3aed','Selling':'#d97706','Subscriptions & Admin':'#2563eb','Healthcare':'#16a34a','Travel':'#2563eb','Melbourne Setup':'#16a34a','Post-Arrival':'#16a34a'};
+const CAT_BG={'Visa & Legal':'#eff6ff','Banking & Finance':'#fffbeb','Apartment & Housing':'#fef2f2','Shipping':'#f5f3ff','Selling':'#fffbeb','Subscriptions & Admin':'#eff6ff','Healthcare':'#f0fdf4','Travel':'#eff6ff','Melbourne Setup':'#f0fdf4','Post-Arrival':'#f0fdf4'};
+const CATS=Object.keys(CAT_COLORS);
+const INV_CATS=['Large Furniture','Medium Furniture','Appliances','Electronics','Clothing & Accessories','Books & Media','Kitchen & Dining','Other'];
+
+const SELL_CFG={
+  'Large Furniture':{phase:'week8',sell_by:'2026-07-05',list_by:'2026-06-07',platform:'Facebook Marketplace, Craigslist'},
+  'Medium Furniture':{phase:'week6',sell_by:'2026-07-12',list_by:'2026-06-14',platform:'Facebook Marketplace, OfferUp'},
+  'Appliances':{phase:'week6',sell_by:'2026-07-12',list_by:'2026-06-14',platform:'Facebook Marketplace, Craigslist'},
+  'Electronics':{phase:'week4',sell_by:'2026-07-14',list_by:'2026-06-21',platform:'Facebook Marketplace, OfferUp'},
+  'Clothing & Accessories':{phase:'week2',sell_by:'2026-07-19',list_by:'2026-07-06',platform:'Poshmark, ThredUP, Facebook'},
+  'Books & Media':{phase:'week2',sell_by:'2026-07-19',list_by:'2026-07-06',platform:'Facebook Marketplace, Buy Nothing'},
+  'Kitchen & Dining':{phase:'week4',sell_by:'2026-07-14',list_by:'2026-06-21',platform:'Facebook Marketplace, OfferUp'},
+  'Other':{phase:'week2',sell_by:'2026-07-19',list_by:'2026-07-06',platform:'Facebook Marketplace, OfferUp'},
+};
+
+const PRESET=[
+  {id:'v1',title:'Lodge 482 visa application',category:'Visa & Legal',owner:'Amanda',phase:'now',due_by:'2026-05-16',priority:'high',notes:'Applying this week. Gather passport, employment contract, qualifications.'},
+  {id:'v2',title:'Gather all visa supporting documents',category:'Visa & Legal',owner:'Amanda',phase:'now',due_by:'2026-05-23',priority:'high',notes:'Passport, employment contract, qualifications, health & character checks.'},
+  {id:'v3',title:'Book visa medical examination (Panel Physician)',category:'Visa & Legal',owner:'Amanda',phase:'now',due_by:'2026-05-23',priority:'high',notes:'Required for 482 visa. Must be done at an approved Panel Physician.'},
+  {id:'v4',title:'Organise FBI background check / police clearance',category:'Visa & Legal',owner:'Amanda',phase:'now',due_by:'2026-05-30',priority:'high',notes:'Can take 2–4 weeks. Start immediately.'},
+  {id:'t1',title:'Confirm flights — ORD to MEL, July 29',category:'Travel',owner:'Both',phase:'now',due_by:'2026-05-16',priority:'high',notes:'Check baggage allowances — extra checked bags are worth it for the move.'},
+  {id:'t2',title:'Check passport validity (6+ months required)',category:'Travel',owner:'Amanda',phase:'now',due_by:'2026-05-16',priority:'high',notes:'Renew now if needed — US passport renewal takes 6–8 weeks.'},
+  {id:'a1',title:'Give landlord formal notice of move-out',category:'Apartment & Housing',owner:'Amanda',phase:'now',due_by:'2026-05-16',priority:'high',notes:'Check lease for required notice period — usually 30–60 days. Move-out is July 28.'},
+  {id:'a2',title:'Review lease for break fees and obligations',category:'Apartment & Housing',owner:'Amanda',phase:'now',due_by:'2026-05-16',priority:'high',notes:"Understand what's needed for full security deposit return."},
+  {id:'v5',title:'Notify current employer of last day',category:'Visa & Legal',owner:'Amanda',phase:'week8',due_by:'2026-05-30',priority:'high',notes:'Check notice period in contract — typically 2–4 weeks.'},
+  {id:'v6',title:'Sign EY Australia employment contract',category:'Visa & Legal',owner:'Amanda',phase:'week8',due_by:'2026-06-07',priority:'high',notes:'Sign and return promptly once EY issues it.'},
+  {id:'b1',title:'Set up Wise for USD → AUD transfers',category:'Banking & Finance',owner:'Amanda',phase:'week8',due_by:'2026-05-30',priority:'medium',notes:'Much cheaper than bank wire transfers. Takes 10 min to set up on the app.'},
+  {id:'b2',title:'Open Australian bank account (CommBank or ANZ)',category:'Banking & Finance',owner:'Amanda',phase:'week8',due_by:'2026-06-07',priority:'high',notes:'Both allow account opening before arriving with just a passport.'},
+  {id:'sell1',title:'Create Facebook Marketplace and OfferUp accounts',category:'Selling',owner:'Amanda',phase:'week8',due_by:'2026-05-23',priority:'medium',notes:'Build seller history before the big push. Take good photos of items early.'},
+  {id:'h1',title:'Schedule final US doctor, dentist and eye appointments',category:'Healthcare',owner:'Amanda',phase:'week8',due_by:'2026-06-07',priority:'medium',notes:"US insurance won't apply in Australia. Get everything sorted before leaving."},
+  {id:'b3',title:"Research 401(k) options — leave, roll over, or cash out",category:'Banking & Finance',owner:'Amanda',phase:'week6',due_by:'2026-06-30',priority:'medium',notes:'Consult a financial advisor. Cashing out early has significant penalties.'},
+  {id:'h2',title:'Collect copies of all medical, dental and vision records',category:'Healthcare',owner:'Amanda',phase:'week6',due_by:'2026-06-30',priority:'medium',notes:'Very useful when registering with an Australian GP.'},
+  {id:'t3',title:'Get international driving permit (IDP) from AAA',category:'Travel',owner:'Amanda',phase:'week6',due_by:'2026-06-30',priority:'low',notes:'Optional but useful. Must convert to Victorian licence within 3 months of arriving.'},
+  {id:'hm1',title:'Research GP clinics near home accepting new patients',category:'Melbourne Setup',owner:'Hardik',phase:'week6',due_by:'2026-06-30',priority:'medium',notes:'Find 2–3 bulk-billing options nearby. Spots fill fast.'},
+  {id:'b4',title:'Notify US bank of overseas move',category:'Banking & Finance',owner:'Amanda',phase:'week4',due_by:'2026-07-05',priority:'medium',notes:'Prevents cards being frozen. Keep at least one US account active.'},
+  {id:'sub1',title:'Audit and cancel US subscriptions (Netflix, gym, etc.)',category:'Subscriptions & Admin',owner:'Amanda',phase:'week4',due_by:'2026-07-05',priority:'medium',notes:'Cancel or switch to Australian plans. Spotify, Netflix etc. have AU versions.'},
+  {id:'sub3',title:'Set up USPS mail forwarding',category:'Subscriptions & Admin',owner:'Amanda',phase:'week4',due_by:'2026-07-05',priority:'medium',notes:'Forward to a US family address, or use Travelling Mailbox for digital forwarding.'},
+  {id:'sub4',title:'Update IRS with overseas address (Form 8822)',category:'Subscriptions & Admin',owner:'Amanda',phase:'week4',due_by:'2026-07-05',priority:'medium',notes:'Required for US expats. Also notify student loan providers if applicable.'},
+  {id:'h3',title:'Get 3–6 month supply of prescription medications',category:'Healthcare',owner:'Amanda',phase:'week4',due_by:'2026-07-14',priority:'high',notes:"Some meds have different names/availability in Australia. Check with your GP."},
+  {id:'t4',title:'Buy US → AU power adapters (Type A/B to Type I)',category:'Melbourne Setup',owner:'Hardik',phase:'week4',due_by:'2026-07-10',priority:'medium',notes:'Buy a few. Australian power is 230V/50Hz — check appliance compatibility.'},
+  {id:'a3',title:'Cancel utilities — gas, electricity, internet',category:'Apartment & Housing',owner:'Amanda',phase:'week2',due_by:'2026-07-22',priority:'medium',notes:"Schedule effective July 28. Don't cancel internet too early if working from home."},
+  {id:'sell2',title:'Book Salvation Army or Goodwill bulk pickup',category:'Selling',owner:'Amanda',phase:'week2',due_by:'2026-07-14',priority:'high',notes:"Book early — bulk pickups take 1–2 weeks to schedule. For everything that doesn't sell."},
+  {id:'b5',title:'Cancel US credit cards not being kept',category:'Banking & Finance',owner:'Amanda',phase:'week2',due_by:'2026-07-19',priority:'low',notes:'Keep one for emergencies. Cancel cards with annual fees.'},
+  {id:'a4',title:'Book professional apartment cleaner for July 28',category:'Apartment & Housing',owner:'Amanda',phase:'week2',due_by:'2026-07-20',priority:'medium',notes:'Most landlords require professional cleaning for security deposit return.'},
+  {id:'hm2',title:"Set up Amanda's space at home in Melbourne",category:'Melbourne Setup',owner:'Hardik',phase:'finalweek',due_by:'2026-07-28',priority:'medium',notes:'Her own wardrobe space, drawers, desk if needed. Make it feel like home before she arrives.'},
+  {id:'hm4',title:'Get a Myki card loaded with $30–40',category:'Melbourne Setup',owner:'Hardik',phase:'finalweek',due_by:'2026-07-28',priority:'low',notes:'Available from 7-Eleven or train stations.'},
+  {id:'a5',title:"Cancel renter's insurance",category:'Apartment & Housing',owner:'Amanda',phase:'finalweek',due_by:'2026-07-27',priority:'low',notes:'Cancel effective move-out date (July 28).'},
+  {id:'sub2',title:'Cancel or port US phone plan',category:'Subscriptions & Admin',owner:'Amanda',phase:'finalweek',due_by:'2026-07-28',priority:'medium',notes:'Keep active until departure day. Port number via Google Voice to keep it.'},
+  {id:'a6',title:'Final apartment walkthrough, photos and return keys',category:'Apartment & Housing',owner:'Amanda',phase:'lastdays',due_by:'2026-07-28',priority:'high',notes:'Take photos/video of condition. Get deposit return confirmation in writing.'},
+  {id:'sell3',title:'Donation day — all unsold items to Goodwill',category:'Selling',owner:'Both',phase:'lastdays',due_by:'2026-07-27',priority:'high',notes:"Everything remaining gets donated. Don't leave it to departure day."},
+  {id:'hm3',title:"Stock fridge with Amanda's favourites",category:'Melbourne Setup',owner:'Hardik',phase:'lastdays',due_by:'2026-07-29',priority:'medium',notes:'Basics plus a few comfort faves. Small gesture, big impact.'},
+  {id:'pa1',title:'Get Australian SIM card on arrival day',category:'Post-Arrival',owner:'Both',phase:'arrival',due_by:'2026-07-30',priority:'high',notes:'Telstra for coverage, Optus or Amaysim cheaper. Available at airport or 7-Eleven.'},
+  {id:'pa2',title:'Apply for Tax File Number (TFN) via ATO website',category:'Post-Arrival',owner:'Amanda',phase:'arrival',due_by:'2026-08-07',priority:'high',notes:'Online at ato.gov.au — requires Australian address. Essential for employment.'},
+  {id:'pa3',title:'Check Medicare eligibility and private health cover with EY HR',category:'Post-Arrival',owner:'Amanda',phase:'arrival',due_by:'2026-08-14',priority:'high',notes:'US is not on the reciprocal healthcare list. 482 holders typically need private cover.'},
+  {id:'pa4',title:'Register with a GP in Melbourne',category:'Post-Arrival',owner:'Amanda',phase:'arrival',due_by:'2026-08-14',priority:'medium',notes:'Hardik is researching options beforehand. Book first appointment to establish as patient.'},
+  {id:'pa5',title:'Book VicRoads appointment to convert US driving licence',category:'Post-Arrival',owner:'Amanda',phase:'arrival',due_by:'2026-10-29',priority:'medium',notes:'Must be done within 3 months of arriving. Book in advance — wait times can be weeks.'},
+  {id:'pa6',title:'Set up superannuation with EY HR',category:'Post-Arrival',owner:'Amanda',phase:'arrival',due_by:'2026-08-14',priority:'medium',notes:"EY will give a super choice form on day one. Choose a fund or go with EY's default."},
+  {id:'pa7',title:'Explore Melbourne together — trams, coffee, Collins St EY office',category:'Post-Arrival',owner:'Both',phase:'arrival',due_by:'2026-08-07',priority:'low',notes:'Hardik in tour guide mode. Tram routes to work, best nearby coffee, local favourites.'},
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const fmt=d=>{if(!d)return'';const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'})};
+const daysLeft=()=>Math.ceil((new Date('2026-07-29')-new Date())/86400000);
+const gCalURL=t=>{const d=(t.due_by||'2026-07-29').replace(/-/g,'');return`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('[Move] '+t.title)}&dates=${d}/${d}&details=${encodeURIComponent(t.notes||'')}&sf=true&output=xml`};
+const genICS=tasks=>{const l=['BEGIN:VCALENDAR','VERSION:2.0','CALSCALE:GREGORIAN','PRODID:-//Move Planner//EN'];tasks.forEach(t=>{const d=(t.due_by||'2026-07-29').replace(/-/g,'');l.push('BEGIN:VEVENT',`DTSTART;VALUE=DATE:${d}`,`DTEND;VALUE=DATE:${d}`,`SUMMARY:[Move] ${t.title}`,`DESCRIPTION:${(t.notes||'').replace(/\n/g,'\\n')}`,`UID:move-${t.id}@planner`,'BEGIN:VALARM','TRIGGER:-P3D','ACTION:DISPLAY',`DESCRIPTION:Reminder: ${t.title}`,'END:VALARM','END:VEVENT')});l.push('END:VCALENDAR');return l.join('\r\n')};
+const dlICS=(tasks,name='amanda-move.ics')=>{const b=new Blob([genICS(tasks)],{type:'text/calendar;charset=utf-8'});const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(b),download:name});a.click()};
+const extractStoragePath=url=>{try{return decodeURIComponent(url.split('/item-photos/')[1]);}catch{return null}};
+
+// ── DB Operations ─────────────────────────────────────────────────────────────
+async function initAndLoadTasks(){
+  const {count}=await db.from('tasks').select('*',{count:'exact',head:true});
+  if(!count){
+    const rows=PRESET.map(t=>({id:t.id,title:t.title,category:t.category,owner:t.owner,phase:t.phase,due_by:t.due_by,priority:t.priority,notes:t.notes,done:false,inventory_id:null}));
+    const chunks=[];for(let i=0;i<rows.length;i+=20)chunks.push(rows.slice(i,i+20));
+    for(const chunk of chunks)await db.from('tasks').insert(chunk);
+  }
+  const {data}=await db.from('tasks').select('*').order('created_at');
+  return data||[];
+}
+async function loadInventory(){
+  const {data}=await db.from('inventory').select('*').order('created_at');
+  return data||[];
+}
+async function toggleTask(id,done){
+  await db.from('tasks').update({done:!done}).eq('id',id);
+}
+async function saveTaskNotes(id,notes){
+  await db.from('tasks').update({notes}).eq('id',id);
+}
+async function addInventoryItem(item,sellTask){
+  await db.from('inventory').insert(item);
+  if(sellTask)await db.from('tasks').insert(sellTask);
+}
+async function saveInventoryNotes(id,notes){
+  await db.from('inventory').update({notes}).eq('id',id);
+}
+async function removeInventoryItem(item){
+  if(item.photo_urls&&item.photo_urls.length){
+    const paths=item.photo_urls.map(extractStoragePath).filter(Boolean);
+    if(paths.length)await db.storage.from('item-photos').remove(paths);
+  }
+  await db.from('tasks').delete().eq('inventory_id',item.id);
+  await db.from('inventory').delete().eq('id',item.id);
+}
+async function uploadPhoto(itemId,file,currentUrls){
+  const ext=file.name.split('.').pop()||'jpg';
+  const path=`${itemId}/${Date.now()}.${ext}`;
+  const {error}=await db.storage.from('item-photos').upload(path,file,{contentType:file.type,upsert:false});
+  if(error)throw error;
+  const {data:{publicUrl}}=db.storage.from('item-photos').getPublicUrl(path);
+  const newUrls=[...(Array.isArray(currentUrls)?currentUrls:[]),publicUrl];
+  await db.from('inventory').update({photo_urls:newUrls}).eq('id',itemId);
+  return newUrls;
+}
+async function removePhoto(itemId,url,currentUrls){
+  const path=extractStoragePath(url);
+  if(path)await db.storage.from('item-photos').remove([path]);
+  const newUrls=(Array.isArray(currentUrls)?currentUrls:[]).filter(u=>u!==url);
+  await db.from('inventory').update({photo_urls:newUrls}).eq('id',itemId);
+  return newUrls;
+}
+
+// ── ProgressRing ──────────────────────────────────────────────────────────────
+function ProgressRing({pct,size=88,color='#1a1918'}){
+  const stroke=6,r=(size-stroke)/2,circ=2*Math.PI*r;
+  return e('div',{className:'progress-ring-wrap',style:{width:size,height:size}},
+    e('svg',{width:size,height:size,style:{transform:'rotate(-90deg)',position:'absolute',top:0,left:0},'aria-hidden':'true'},
+      e('circle',{cx:size/2,cy:size/2,r,fill:'none',stroke:'var(--border-med)',strokeWidth:stroke}),
+      e('circle',{cx:size/2,cy:size/2,r,fill:'none',stroke:color,strokeWidth:stroke,strokeDasharray:circ,strokeDashoffset:circ-(pct/100)*circ,strokeLinecap:'round',style:{transition:'stroke-dashoffset .5s ease'}})),
+    e('div',{className:'progress-ring-label'},
+      e('div',{style:{fontSize:18,fontWeight:600,lineHeight:1}},pct,'%'),
+      e('div',{style:{fontSize:10,color:'var(--text3)'}},pct===100?'🎉':'done')));
+}
+
+// ── CalBtn ────────────────────────────────────────────────────────────────────
+function CalBtn({task}){
+  const[open,setOpen]=useState(false);
+  const ref=useRef();
+  useEffect(()=>{
+    if(!open)return;
+    const h=ev=>{if(ref.current&&!ref.current.contains(ev.target))setOpen(false)};
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+  },[open]);
+  return e('div',{ref,style:{position:'relative',flexShrink:0}},
+    e('button',{onClick:ev=>{ev.stopPropagation();setOpen(!open)},className:'btn btn-sm',style:{padding:'4px 8px',fontSize:12}},
+      e('i',{className:'ti ti-calendar-plus','aria-hidden':'true'})),
+    open&&e('div',{className:'cal-menu',onClick:ev=>ev.stopPropagation()},
+      e('a',{href:gCalURL(task),target:'_blank',rel:'noreferrer',onClick:()=>setOpen(false)},
+        e('i',{className:'ti ti-brand-google','aria-hidden':'true'}),'Google Calendar'),
+      e('button',{onClick:()=>{dlICS([task]);setOpen(false)}},
+        e('i',{className:'ti ti-brand-apple','aria-hidden':'true'}),'Apple Calendar')));
+}
+
+// ── TaskRow ───────────────────────────────────────────────────────────────────
+function TaskRow({task:t,onToggle,onNotesChange,role,last,phColor}){
+  const[editNotes,setEditNotes]=useState(false);
+  const[notes,setNotes]=useState(t.notes||'');
+  const[saving,setSaving]=useState(false);
+  const handleBlur=async()=>{
+    if(notes===t.notes){setEditNotes(false);return;}
+    setSaving(true);
+    await saveTaskNotes(t.id,notes);
+    onNotesChange(t.id,notes);
+    setSaving(false);setEditNotes(false);
+  };
+  const canCheck=role==='amanda';
+  return e('div',{className:`task-row${t.done?' done':''}`,style:{background:t.done?'var(--surface2)':'var(--surface)'}},
+    e('button',{
+      className:`task-check${canCheck?' checkable':''}${t.done?' checked':''}`,
+      style:{color:phColor,borderColor:t.done?phColor:'var(--border-med)'},
+      onClick:()=>canCheck&&onToggle(t.id,t.done),
+      title:canCheck?'Mark done':'View only — switch to Amanda mode to check off'},
+      t.done&&e('i',{className:'ti ti-check',style:{fontSize:9,color:'#fff'},'aria-hidden':'true'})),
+    e('div',{style:{flex:1,minWidth:0}},
+      e('div',{style:{fontSize:14,fontWeight:500,color:t.done?'var(--text3)':'var(--text)',textDecoration:t.done?'line-through':'none'}},t.title),
+      e('div',{style:{display:'flex',gap:6,marginTop:4,flexWrap:'wrap',alignItems:'center'}},
+        e('span',{className:'badge',style:{background:CAT_BG[t.category]||'var(--surface2)',color:CAT_COLORS[t.category]||'var(--text2)'}},t.category),
+        e('span',{style:{fontSize:11,color:'var(--text3)'}},e('i',{className:'ti ti-user',style:{marginRight:2,fontSize:10},'aria-hidden':'true'}),t.owner),
+        e('span',{style:{fontSize:11,color:'var(--text3)'}},e('i',{className:'ti ti-calendar',style:{marginRight:2,fontSize:10},'aria-hidden':'true'}),'due ',fmt(t.due_by)),
+        t.priority==='high'&&!t.done&&e('span',{style:{fontSize:10,color:'var(--danger)',fontWeight:600}},'● high')),
+      editNotes
+        ? e('div',{className:'notes-edit'},
+            e('textarea',{value:notes,onChange:ev=>setNotes(ev.target.value),onBlur:handleBlur,autoFocus:true,placeholder:'Add a note…',style:{fontSize:12,minHeight:52}}),
+            saving&&e('span',{style:{fontSize:11,color:'var(--text3)'}},'Saving…'))
+        : e('div',{style:{display:'flex',alignItems:'flex-start',gap:6,marginTop:4}},
+            notes&&e('div',{className:'notes-view'},notes),
+            role==='amanda'&&e('button',{onClick:()=>setEditNotes(true),style:{padding:'2px 6px',fontSize:11,border:'none',background:'none',color:'var(--text3)'}},
+              e('i',{className:'ti ti-pencil',style:{fontSize:11},'aria-hidden':'true'}),notes?'':' Add note'))),
+    e(CalBtn,{task:t}));
+}
+
+// ── Overview Tab ──────────────────────────────────────────────────────────────
+function Overview({tasks,inventory,setTab,role}){
+  const done=tasks.filter(t=>t.done).length;
+  const pct=tasks.length?Math.round(done/tasks.length*100):0;
+  const dl=daysLeft();
+  const urgent=tasks.filter(t=>!t.done&&(t.phase==='now'||t.phase==='week8')).slice(0,5);
+  return e('div',null,
+    role!=='amanda'&&e('div',{style:{background:'var(--warning-bg)',border:'1px solid var(--warning-border)',borderRadius:'var(--radius)',padding:'9px 13px',marginBottom:14,fontSize:13,color:'var(--warning)'}},
+      e('i',{className:'ti ti-info-circle',style:{marginRight:6},'aria-hidden':'true'}),'View-only mode — switch to ',e('strong',null,'Amanda mode'),' (top right) to check off tasks and edit notes.'),
+    // Progress hero
+    e('div',{style:{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',padding:20,marginBottom:14,display:'flex',alignItems:'center',gap:20,flexWrap:'wrap'}},
+      e(ProgressRing,{pct,size:88}),
+      e('div',{style:{flex:1,minWidth:160}},
+        e('div',{style:{fontSize:20,fontWeight:600}},pct,'% complete'),
+        e('div',{style:{fontSize:13,color:'var(--text2)',marginTop:2}},done,' of ',tasks.length,' tasks done'),
+        e('div',{style:{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}},
+          e('button',{onClick:()=>dlICS(tasks.filter(t=>!t.done)),className:'btn'},
+            e('i',{className:'ti ti-brand-apple','aria-hidden':'true'}),'Apple Calendar'),
+          e('button',{onClick:()=>dlICS(tasks.filter(t=>!t.done),'amanda-move-google.ics'),className:'btn'},
+            e('i',{className:'ti ti-brand-google','aria-hidden':'true'}),'Google Calendar'))),
+      e('div',{style:{textAlign:'right',flexShrink:0}},
+        e('div',{style:{fontSize:28,fontWeight:600}},'Jul 29'),
+        e('div',{style:{fontSize:12,color:'var(--text2)'}},'Flight day'),
+        e('div',{style:{fontSize:11,color:'var(--text3)',marginTop:2}},dl,' days away'))),
+    // Phase grid
+    e('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(178px,1fr))',gap:9,marginBottom:14}},
+      PHASES.map(ph=>{
+        const pt=tasks.filter(t=>t.phase===ph.id);
+        const d=pt.filter(t=>t.done).length;
+        const p=pt.length?Math.round(d/pt.length*100):0;
+        return e('div',{key:ph.id,onClick:()=>setTab('checklist'),style:{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--radius)',padding:'11px 13px',cursor:'pointer',transition:'border-color .15s'},
+          onMouseEnter:ev=>ev.currentTarget.style.borderColor='var(--border-med)',
+          onMouseLeave:ev=>ev.currentTarget.style.borderColor='var(--border)'},
+          e('div',{style:{fontSize:12,fontWeight:600,color:ph.color,marginBottom:1}},ph.label),
+          e('div',{style:{fontSize:11,color:'var(--text3)',marginBottom:8}},ph.sub),
+          e('div',{className:'phase-bar'},
+            e('div',{className:'phase-bar-fill',style:{width:`${p}%`,background:ph.color}})),
+          e('div',{style:{fontSize:11,color:'var(--text3)',marginTop:5}},d,'/',pt.length,' · ',p,'%'));})),
+    // Urgent
+    urgent.length>0&&e('div',{style:{marginBottom:14}},
+      e('div',{style:{fontSize:11,fontWeight:600,color:'var(--text2)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}},'Needs attention now'),
+      e('div',{style:{display:'flex',flexDirection:'column',gap:6}},
+        urgent.map(t=>e('div',{key:t.id,style:{background:'var(--surface)',border:'1px solid var(--border)',borderLeft:'3px solid var(--danger)',borderRadius:'var(--radius)',padding:'9px 12px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}},
+          e('div',null,
+            e('div',{style:{fontSize:13,fontWeight:500}},t.title),
+            e('div',{style:{fontSize:11,color:'var(--text3)',marginTop:2}},t.category,' · ',t.owner,' · due ',fmt(t.due_by))),
+          e(CalBtn,{task:t}))))),
+    // Inventory summary
+    inventory.length>0&&e('div',{style:{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',padding:'13px 16px'}},
+      e('div',{style:{fontSize:11,fontWeight:600,color:'var(--text2)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:10}},'Inventory'),
+      e('div',{style:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}},
+        [['Sell','var(--warning)'],['Donate','var(--success)'],['Bin','var(--text3)'],['Ship','var(--info)']].map(([d,c])=>
+          e('div',{key:d,style:{textAlign:'center'}},
+            e('div',{style:{fontSize:22,fontWeight:600,color:c}},inventory.filter(i=>i.decision===d).length),
+            e('div',{style:{fontSize:11,color:'var(--text2)'}},d))))));
+}
+
+// ── Checklist Tab ─────────────────────────────────────────────────────────────
+function Checklist({tasks,onToggle,onNotesChange,role}){
+  const[exp,setExp]=useState({});
+  const[cat,setCat]=useState('All');
+  const[own,setOwn]=useState('All');
+  const filtered=tasks.filter(t=>(cat==='All'||t.category===cat)&&(own==='All'||t.owner===own));
+  return e('div',null,
+    e('div',{style:{display:'flex',gap:8,marginBottom:13,flexWrap:'wrap',alignItems:'center'}},
+      e('select',{value:cat,onChange:ev=>setCat(ev.target.value),style:{width:'auto',minWidth:160}},
+        e('option',null,'All'),CATS.map(c=>e('option',{key:c},c))),
+      e('select',{value:own,onChange:ev=>setOwn(ev.target.value),style:{width:'auto',minWidth:110}},
+        e('option',null,'All'),['Amanda','Hardik','Both'].map(o=>e('option',{key:o},o))),
+      e('button',{onClick:()=>dlICS(filtered.filter(t=>!t.done)),className:'btn',style:{marginLeft:'auto'}},
+        e('i',{className:'ti ti-download','aria-hidden':'true'}),'Export remaining')),
+    PHASES.map(ph=>{
+      const pt=filtered.filter(t=>t.phase===ph.id);
+      if(!pt.length)return null;
+      const d=pt.filter(t=>t.done).length,p=Math.round(d/pt.length*100),open=exp[ph.id]!==false;
+      return e('div',{key:ph.id,style:{marginBottom:8,border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',overflow:'hidden'}},
+        e('button',{onClick:()=>setExp(prev=>({...prev,[ph.id]:!open})),style:{width:'100%',background:'var(--surface2)',border:'none',padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:10}},
+          e('span',{style:{width:8,height:8,borderRadius:'50%',background:ph.color,flexShrink:0}}),
+          e('div',{style:{flex:1,textAlign:'left'}},
+            e('span',{style:{fontSize:13,fontWeight:600}},ph.label),
+            e('span',{style:{fontSize:11,color:'var(--text3)',marginLeft:8}},ph.sub)),
+          e('div',{className:'phase-bar'},
+            e('div',{className:'phase-bar-fill',style:{width:`${p}%`,background:ph.color}})),
+          e('span',{style:{fontSize:11,color:'var(--text3)',minWidth:42,textAlign:'right'}},d,'/',pt.length),
+          e('i',{className:`ti ti-chevron-${open?'up':'down'}`,style:{color:'var(--text3)',fontSize:14,flexShrink:0},'aria-hidden':'true'})),
+        open&&e('div',{style:{background:'var(--surface)'}},
+          pt.map((t,i)=>e(TaskRow,{key:t.id,task:t,onToggle,onNotesChange,role,last:i===pt.length-1,phColor:ph.color}))));}));
+}
+
+// ── Inventory Card ────────────────────────────────────────────────────────────
+function InvCard({item,onRemove,onPhotosChange,onNotesChange}){
+  const[uploading,setUploading]=useState(false);
+  const[editNotes,setEditNotes]=useState(false);
+  const[notes,setNotes]=useState(item.notes||'');
+  const[saving,setSaving]=useState(false);
+  const fileRef=useRef();
+  const decColors={Sell:'var(--warning)',Donate:'var(--success)',Bin:'var(--text3)',Ship:'var(--info)'};
+  const handleFiles=async ev=>{
+    const files=Array.from(ev.target.files);
+    if(!files.length)return;
+    setUploading(true);
+    let urls=item.photo_urls||[];
+    for(const f of files){try{urls=await uploadPhoto(item.id,f,urls);}catch(err){console.error(err);}}
+    onPhotosChange(item.id,urls);
+    setUploading(false);
+    ev.target.value='';
+  };
+  const handleRemovePhoto=async url=>{
+    const newUrls=await removePhoto(item.id,url,item.photo_urls||[]);
+    onPhotosChange(item.id,newUrls);
+  };
+  const handleNotesBlur=async()=>{
+    if(notes===item.notes){setEditNotes(false);return;}
+    setSaving(true);
+    await saveInventoryNotes(item.id,notes);
+    onNotesChange(item.id,notes);
+    setSaving(false);setEditNotes(false);
+  };
+  return e('div',{className:'inv-card'},
+    e('div',{style:{display:'flex',alignItems:'flex-start',gap:10}},
+      e('div',{style:{flex:1,minWidth:0}},
+        e('div',{style:{fontSize:14,fontWeight:500}},item.name,' ',e('span',{style:{color:'var(--text3)',fontWeight:400}},'×',item.quantity)),
+        e('div',{style:{display:'flex',gap:6,marginTop:4,flexWrap:'wrap',alignItems:'center'}},
+          e('span',{className:'badge',style:{background:'var(--surface2)',color:'var(--text2)'}},item.category),
+          e('span',{style:{fontSize:11,color:'var(--text3)'}},item.condition,' condition'),
+          e('span',{style:{fontSize:11,fontWeight:500,color:decColors[item.decision]||'var(--text2)'}},item.decision),
+          item.decision==='Sell'&&item.sell_by&&e('span',{style:{fontSize:11,color:'var(--text3)'}},'· sell by ',fmt(item.sell_by)),
+          item.decision==='Sell'&&item.platform&&e('span',{style:{fontSize:11,color:'var(--text3)'}},'· ',item.platform))),
+      e('button',{onClick:()=>onRemove(item),className:'btn btn-sm',style:{padding:'3px 7px',color:'var(--danger)',borderColor:'var(--danger-border)'}},
+        e('i',{className:'ti ti-trash','aria-hidden':'true'}))),
+    // Notes
+    editNotes
+      ? e('div',{style:{marginTop:8}},
+          e('textarea',{value:notes,onChange:ev=>setNotes(ev.target.value),onBlur:handleNotesBlur,autoFocus:true,placeholder:'Add notes about this item…',style:{fontSize:12,minHeight:60}}),
+          saving&&e('span',{style:{fontSize:11,color:'var(--text3)'}},'Saving…'))
+      : e('div',{style:{display:'flex',alignItems:'flex-start',gap:6,marginTop:notes?6:0}},
+          notes&&e('div',{style:{fontSize:12,color:'var(--text3)',flex:1}},notes),
+          e('button',{onClick:()=>setEditNotes(true),style:{padding:'2px 6px',fontSize:11,border:'none',background:'none',color:'var(--text3)',flexShrink:0}},
+            e('i',{className:'ti ti-pencil',style:{fontSize:11},'aria-hidden':'true'}),notes?'':' Add note')),
+    // Photos
+    (item.photo_urls&&item.photo_urls.length>0)&&e('div',{className:'photo-grid'},
+      (item.photo_urls||[]).map((url,i)=>e('div',{key:i,className:'photo-thumb-wrap'},
+        e('img',{src:url,className:'photo-thumb',alt:'Item photo',onClick:()=>window.open(url,'_blank')}),
+        e('button',{className:'photo-del',onClick:()=>handleRemovePhoto(url),'aria-label':'Remove photo'},
+          e('i',{className:'ti ti-x','aria-hidden':'true'}))))),
+    // Upload
+    e('div',{style:{marginTop:8,display:'flex',alignItems:'center',gap:8}},
+      e('button',{onClick:()=>fileRef.current&&fileRef.current.click(),className:'btn btn-sm',disabled:uploading,style:{opacity:uploading?0.5:1,cursor:uploading?'not-allowed':'pointer'}},
+        uploading?e('span',{style:{display:'flex',alignItems:'center',gap:6}},e('span',{className:'spinner',style:{width:12,height:12,borderWidth:2}}),'Uploading…')
+          :e('span',{style:{display:'flex',alignItems:'center',gap:6}},e('i',{className:'ti ti-camera','aria-hidden':'true'}),'Add photos')),
+      e('input',{ref:fileRef,type:'file',accept:'image/*',multiple:true,style:{display:'none'},onChange:handleFiles})));
+}
+
+// ── Inventory Add Form ────────────────────────────────────────────────────────
+function InvForm({onAdd,onCancel}){
+  const[form,setForm]=useState({name:'',quantity:1,category:'Large Furniture',condition:'Good',decision:'Sell',notes:''});
+  const cfg=SELL_CFG[form.category]||SELL_CFG['Other'];
+  const set=k=>ev=>setForm(p=>({...p,[k]:ev.target.value}));
+  const submit=async()=>{
+    if(!form.name.trim())return;
+    const id=`inv_${Date.now()}`;
+    const item={id,name:form.name.trim(),quantity:+form.quantity,category:form.category,condition:form.condition,decision:form.decision,notes:form.notes,sell_by:cfg.sell_by,list_by:cfg.list_by,platform:cfg.platform,photo_urls:[]};
+    let sellTask=null;
+    if(form.decision==='Sell')sellTask={id:`sell_${Date.now()}`,title:`List & sell: ${item.name} (×${item.quantity})`,category:'Selling',owner:'Amanda',phase:cfg.phase,due_by:cfg.sell_by,priority:'medium',notes:`List by ${fmt(cfg.list_by)} on ${cfg.platform}. Sell by ${fmt(cfg.sell_by)}.`,done:false,inventory_id:id};
+    await addInventoryItem(item,sellTask);
+    onAdd(item,sellTask);
+  };
+  return e('div',{style:{background:'var(--surface)',border:'1px solid var(--border-med)',borderRadius:'var(--radius-lg)',padding:18,marginBottom:16}},
+    e('div',{style:{display:'grid',gridTemplateColumns:'1fr 72px',gap:8,marginBottom:8}},
+      e('input',{placeholder:'Item name (e.g. IKEA KALLAX shelf, couch, fridge…)',value:form.name,onChange:set('name')}),
+      e('input',{type:'number',min:'1',value:form.quantity,onChange:set('quantity'),placeholder:'Qty'})),
+    e('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}},
+      e('select',{value:form.category,onChange:set('category')},INV_CATS.map(c=>e('option',{key:c},c))),
+      e('select',{value:form.condition,onChange:set('condition')},['Good','Fair','Poor'].map(c=>e('option',{key:c},c))),
+      e('select',{value:form.decision,onChange:set('decision')},
+        e('option',{value:'Sell'},'Sell'),
+        e('option',{value:'Donate'},'Donate'),
+        e('option',{value:'Bin'},'Bin'),
+        e('option',{value:'Ship'},'Ship (last resort)'))),
+    form.decision==='Ship'&&e('div',{style:{fontSize:12,padding:'8px 10px',background:'var(--warning-bg)',border:'1px solid var(--warning-border)',borderRadius:'var(--radius)',marginBottom:8,color:'var(--warning)'}},
+      e('i',{className:'ti ti-alert-triangle',style:{marginRight:5},'aria-hidden':'true'}),'Only ship if you really can\'t sell, donate, or bin it — shipping to Melbourne adds cost and 6–8 weeks lead time.'),
+    form.decision==='Sell'&&e('div',{style:{fontSize:12,padding:'8px 10px',background:'var(--info-bg)',border:'1px solid var(--info-border)',borderRadius:'var(--radius)',marginBottom:8,color:'var(--info)'}},
+      e('i',{className:'ti ti-clock',style:{marginRight:5},'aria-hidden':'true'}),'List by ',e('strong',null,fmt(cfg.list_by)),' · sell by ',e('strong',null,fmt(cfg.sell_by)),' · ',cfg.platform),
+    e('textarea',{placeholder:'Notes (optional) — condition details, purchase info, listing notes…',value:form.notes,onChange:set('notes'),style:{marginBottom:10,minHeight:52,fontSize:12}}),
+    e('div',{style:{display:'flex',gap:8}},
+      e('button',{onClick:submit,className:'btn btn-primary',type:'button'},'Add item'),
+      e('button',{onClick:onCancel,className:'btn',type:'button'},'Cancel')));
+}
+
+// ── Inventory Tab ─────────────────────────────────────────────────────────────
+function Inventory({inventory,onAdd,onRemove,onPhotosChange,onNotesChange,role}){
+  const[adding,setAdding]=useState(false);
+  const grouped=INV_CATS.map(c=>({c,items:inventory.filter(i=>i.category===c)})).filter(g=>g.items.length);
+  const handleAdd=(item,sellTask)=>{onAdd(item,sellTask);setAdding(false)};
+  return e('div',null,
+    e('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:13}},
+      e('div',{style:{fontSize:13,color:'var(--text2)'}},inventory.length,' items · sell tasks auto-added to checklist'),
+      e('button',{onClick:()=>setAdding(!adding),className:'btn btn-primary'},
+        e('i',{className:'ti ti-plus','aria-hidden':'true'}),'Add item')),
+    adding&&e(InvForm,{onAdd:handleAdd,onCancel:()=>setAdding(false)}),
+    !inventory.length&&!adding&&e('div',{style:{textAlign:'center',padding:'60px 0',color:'var(--text3)'}},
+      e('i',{className:'ti ti-package',style:{fontSize:36,display:'block',marginBottom:10},'aria-hidden':'true'}),
+      e('div',{style:{fontSize:15,marginBottom:4}},'No items added yet'),
+      e('div',{style:{fontSize:13}},'Add furniture, appliances and other items to plan what to sell, donate, or bin.')),
+    grouped.map(({c,items})=>e('div',{key:c,style:{marginBottom:14}},
+      e('div',{style:{fontSize:11,fontWeight:600,color:'var(--text2)',textTransform:'uppercase',letterSpacing:'0.07em',marginBottom:8}},c),
+      items.map(item=>e(InvCard,{key:item.id,item,onRemove,onPhotosChange,onNotesChange})))));
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+function App(){
+  const[tasks,setTasks]=useState([]);
+  const[inventory,setInventory]=useState([]);
+  const[tab,setTab]=useState('overview');
+  const[role,setRole]=useState(()=>localStorage.getItem('move_role2')||'viewer');
+  const[loading,setLoading]=useState(true);
+  const[error,setError]=useState(null);
+
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const[t,inv]=await Promise.all([initAndLoadTasks(),loadInventory()]);
+        setTasks(t);setInventory(inv);
+      }catch(err){console.error(err);setError('Failed to load data. Check your Supabase connection.');}
+      setLoading(false);
+    })();
+  },[]);
+
+  const handleToggle=async(id,done)=>{
+    setTasks(p=>p.map(t=>t.id===id?{...t,done:!done}:t));
+    await toggleTask(id,done);
+  };
+  const handleTaskNotes=useCallback((id,notes)=>{
+    setTasks(p=>p.map(t=>t.id===id?{...t,notes}:t));
+  },[]);
+  const handleAddItem=(item,sellTask)=>{
+    setInventory(p=>[...p,item]);
+    if(sellTask)setTasks(p=>[...p,{...sellTask,done:false}]);
+  };
+  const handleRemoveItem=async item=>{
+    if(!window.confirm(`Remove "${item.name}" and any associated sell tasks?`))return;
+    setInventory(p=>p.filter(i=>i.id!==item.id));
+    setTasks(p=>p.filter(t=>t.inventory_id!==item.id));
+    await removeInventoryItem(item);
+  };
+  const handlePhotosChange=(id,urls)=>setInventory(p=>p.map(i=>i.id===id?{...i,photo_urls:urls}:i));
+  const handleInvNotes=(id,notes)=>setInventory(p=>p.map(i=>i.id===id?{...i,notes}:i));
+  const setR=r=>{setRole(r);localStorage.setItem('move_role2',r)};
+
+  if(loading)return e('div',{className:'loading-screen'},e('div',{className:'spinner'}),e('span',null,'Loading your plan…'));
+  if(error)return e('div',{className:'loading-screen'},e('i',{className:'ti ti-alert-circle',style:{fontSize:32,color:'var(--danger)'}}),e('span',{style:{color:'var(--danger)'}},error));
+
+  return e('div',{style:{minHeight:'100vh'}},
+    // Header
+    e('div',{style:{borderBottom:'1px solid var(--border)',padding:'11px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',background:'var(--surface)',position:'sticky',top:0,zIndex:100}},
+      e('div',null,
+        e('div',{style:{fontSize:15,fontWeight:600}},"Amanda's Melbourne Move ✈️"),
+        e('div',{style:{fontSize:11,color:'var(--text2)',marginTop:1}},'July 29, 2026 · ',daysLeft(),' days to go')),
+      e('button',{onClick:()=>setR(role==='amanda'?'viewer':'amanda'),className:'btn',style:{background:role==='amanda'?'var(--success-bg)':'',color:role==='amanda'?'var(--success)':'',borderColor:role==='amanda'?'var(--success-border)':''}},
+        e('i',{className:`ti ${role==='amanda'?'ti-user-check':'ti-eye'}`,'aria-hidden':'true'}),
+        role==='amanda'?'Amanda mode':'View only')),
+    // Tabs
+    e('div',{style:{borderBottom:'1px solid var(--border)',display:'flex',background:'var(--surface)'}},
+      [['overview','Overview'],['checklist','Checklist'],['inventory','Inventory']].map(([id,label])=>
+        e('button',{key:id,onClick:()=>setTab(id),style:{padding:'10px 20px',background:'none',border:'none',cursor:'pointer',fontSize:13,fontWeight:tab===id?600:400,color:tab===id?'var(--text)':'var(--text2)',borderBottom:tab===id?'2px solid var(--text)':'2px solid transparent',marginBottom:-1}},label))),
+    // Content
+    e('div',{style:{padding:18,maxWidth:860,margin:'0 auto'}},
+      tab==='overview'&&e(Overview,{tasks,inventory,setTab,role}),
+      tab==='checklist'&&e(Checklist,{tasks,onToggle:handleToggle,onNotesChange:handleTaskNotes,role}),
+      tab==='inventory'&&e(Inventory,{inventory,onAdd:handleAddItem,onRemove:handleRemoveItem,onPhotosChange:handlePhotosChange,onNotesChange:handleInvNotes,role})));
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+</script>
+</body>
+</html>
