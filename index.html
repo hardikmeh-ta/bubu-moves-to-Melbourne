@@ -228,6 +228,9 @@ async function addCustomTask(task){
 async function updateTaskOwner(id,owner){
   await db.from('tasks').update({owner}).eq('id',id);
 }
+async function updateTaskTitle(id,title){
+  await db.from('tasks').update({title}).eq('id',id);
+}
 async function updateTaskDueDate(id,due_by){
   await db.from('tasks').update({due_by}).eq('id',id);
 }
@@ -292,11 +295,13 @@ function CalBtn({task}){
 }
 
 // ── TaskRow ───────────────────────────────────────────────────────────────────
-function TaskRow({task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onDelete,role,phColor}){
+function TaskRow({task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onTitleChange,onDelete,role,phColor}){
   const[menuOpen,setMenuOpen]=useState(false);
   const[editNotes,setEditNotes]=useState(false);
   const[editDate,setEditDate]=useState(false);
+  const[editTitle,setEditTitle]=useState(false);
   const[notes,setNotes]=useState(t.notes||'');
+  const[titleVal,setTitleVal]=useState(t.title||'');
   const[saving,setSaving]=useState(false);
   const menuRef=useRef();
   useEffect(()=>{
@@ -312,8 +317,19 @@ function TaskRow({task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,on
     const val=ev.target.value;if(!val)return;
     setEditDate(false);await updateTaskDueDate(t.id,val);onDueDateChange(t.id,val);
   };
+  const handleTitleBlur=async()=>{
+    const trimmed=titleVal.trim();
+    if(!trimmed){setTitleVal(t.title);setEditTitle(false);return;}
+    if(trimmed===t.title){setEditTitle(false);return;}
+    await updateTaskTitle(t.id,trimmed);
+    onTitleChange(t.id,trimmed);
+    setEditTitle(false);
+  };
+  const handleTitleKey=ev=>{
+    if(ev.key==='Enter'){ev.preventDefault();ev.target.blur();}
+    if(ev.key==='Escape'){setTitleVal(t.title);setEditTitle(false);}
+  };
   const canCheck=role==='amanda';
-  const isCustom=t.id.startsWith('custom_');
   const ownerColor={Amanda:'var(--info)',Hardik:'var(--success)',Both:'var(--warning)'};
   return e('div',{className:`task-row${t.done?' done':''}${t.priority==='high'&&!t.done?' pri-high':''}`,style:{background:t.done?'var(--surface2)':'var(--surface)'}},
     e('button',{className:`task-check${canCheck?' checkable':''}${t.done?' checked':''}`,
@@ -322,7 +338,13 @@ function TaskRow({task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,on
       title:canCheck?'Mark done':'View only'},
       t.done&&e('i',{className:'ti ti-check',style:{fontSize:9,color:'#fff'},'aria-hidden':'true'})),
     e('div',{style:{flex:1,minWidth:0}},
-      e('div',{style:{fontSize:14,fontWeight:500,color:t.done?'var(--text3)':'var(--text)',textDecoration:t.done?'line-through':'none',lineHeight:1.4}},t.title),
+      editTitle
+        ? e('input',{value:titleVal,autoFocus:true,
+            onChange:ev=>setTitleVal(ev.target.value),
+            onBlur:handleTitleBlur,
+            onKeyDown:handleTitleKey,
+            style:{fontSize:14,fontWeight:500,padding:'1px 6px',borderRadius:4,border:'1px solid var(--border-med)',background:'var(--surface)',color:'var(--text)',width:'100%',marginBottom:3}})
+        : e('div',{style:{fontSize:14,fontWeight:500,color:t.done?'var(--text3)':'var(--text)',textDecoration:t.done?'line-through':'none',lineHeight:1.4}},t.title),
       e('div',{style:{display:'flex',gap:6,marginTop:3,flexWrap:'wrap',alignItems:'center'}},
         e('span',{style:{fontSize:11,fontWeight:500,color:CAT_COLORS[t.category]||'var(--text3)'}},t.category),
         e('span',{style:{fontSize:11,color:'var(--text3)'}},'·'),
@@ -344,6 +366,8 @@ function TaskRow({task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,on
         style:{padding:'2px 6px',border:'none',background:'none',color:'var(--text3)',fontSize:18,lineHeight:1,cursor:'pointer',borderRadius:'var(--radius)',letterSpacing:1}},
         '···'),
       menuOpen&&e('div',{style:{position:'absolute',right:0,top:'calc(100% + 2px)',background:'var(--surface)',border:'1px solid var(--border-med)',borderRadius:'var(--radius-lg)',padding:4,zIndex:300,minWidth:185,boxShadow:'0 8px 24px rgba(0,0,0,0.12)'},onClick:ev=>ev.stopPropagation()},
+        e('button',{onClick:()=>{setTitleVal(t.title);setEditTitle(true);setMenuOpen(false)},className:'menu-item'},
+          e('i',{className:'ti ti-cursor-text','aria-hidden':'true'}),'Edit title'),
         e('button',{onClick:()=>{setEditNotes(true);setMenuOpen(false)},className:'menu-item'},
           e('i',{className:'ti ti-pencil','aria-hidden':'true'}),t.notes?'Edit notes':'Add notes'),
         e('button',{onClick:()=>{setEditDate(true);setMenuOpen(false)},className:'menu-item'},
@@ -358,10 +382,9 @@ function TaskRow({task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,on
           e('i',{className:'ti ti-brand-google','aria-hidden':'true'}),'Google Calendar'),
         e('button',{onClick:()=>{dlICS([t]);setMenuOpen(false)},className:'menu-item'},
           e('i',{className:'ti ti-brand-apple','aria-hidden':'true'}),'Apple Calendar'),
-        isCustom&&e('div',null,
-          e('div',{style:{height:1,background:'var(--border)',margin:'4px 0'}}),
-          e('button',{onClick:()=>{onDelete(t.id);setMenuOpen(false)},className:'menu-item',style:{color:'var(--danger)'}},
-            e('i',{className:'ti ti-trash','aria-hidden':'true'}),'Delete task')))));
+        e('div',{style:{height:1,background:'var(--border)',margin:'4px 0'}}),
+        e('button',{onClick:()=>{onDelete(t.id);setMenuOpen(false)},className:'menu-item',style:{color:'var(--danger)'}},
+          e('i',{className:'ti ti-trash','aria-hidden':'true'}),'Delete task'))));
 }
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
@@ -457,7 +480,7 @@ function AddTaskForm({onAdd,onCancel}){
 }
 
 // ── Checklist Tab ─────────────────────────────────────────────────────────────
-function Checklist({tasks,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onAddTask,onDeleteTask,role}){
+function Checklist({tasks,onToggle,onNotesChange,onTitleChange,onOwnerChange,onDueDateChange,onAddTask,onDeleteTask,role}){
   const[exp,setExp]=useState({});
   const[cat,setCat]=useState('All');
   const[own,setOwn]=useState('All');
@@ -489,7 +512,7 @@ function Checklist({tasks,onToggle,onNotesChange,onOwnerChange,onDueDateChange,o
           e('span',{style:{fontSize:11,color:'var(--text3)',minWidth:36,textAlign:'right'}},d,'/',pt.length),
           e('i',{className:`ti ti-chevron-${open?'up':'down'}`,style:{color:'var(--text3)',fontSize:13,flexShrink:0,marginLeft:4},'aria-hidden':'true'})),
         open&&e('div',{style:{background:'var(--surface)'}},
-          pt.map((t,i)=>e(TaskRow,{key:t.id,task:t,onToggle,onNotesChange,onOwnerChange,onDueDateChange,onDelete:onDeleteTask,role,last:i===pt.length-1,phColor:ph.color}))));}));
+          pt.map((t,i)=>e(TaskRow,{key:t.id,task:t,onToggle,onNotesChange,onTitleChange,onOwnerChange,onDueDateChange,onDelete:onDeleteTask,role,phColor:ph.color}))));}));
 }
 
 // ── Inventory Card ────────────────────────────────────────────────────────────
@@ -641,6 +664,9 @@ function App(){
   const handleTaskNotes=useCallback((id,notes)=>{
     setTasks(p=>p.map(t=>t.id===id?{...t,notes}:t));
   },[]);
+  const handleTitleChange=useCallback((id,title)=>{
+    setTasks(p=>p.map(t=>t.id===id?{...t,title}:t));
+  },[]);
   const handleAddItem=(item,sellTask)=>{
     setInventory(p=>[...p,item]);
     if(sellTask)setTasks(p=>[...p,{...sellTask,done:false}]);
@@ -664,7 +690,7 @@ function App(){
     setTasks(p=>p.map(t=>t.id===id?{...t,due_by}:t));
   },[]);
   const handleDeleteTask=useCallback(async id=>{
-    if(!window.confirm('Delete this custom task?'))return;
+    if(!window.confirm('Delete this task? This cannot be undone.'))return;
     setTasks(p=>p.filter(t=>t.id!==id));
     await deleteTask(id);
   },[]);
@@ -689,7 +715,7 @@ function App(){
     // Content
     e('div',{style:{padding:18,maxWidth:860,margin:'0 auto'}},
       tab==='overview'&&e(Overview,{tasks,inventory,setTab,role}),
-      tab==='checklist'&&e(Checklist,{tasks,onToggle:handleToggle,onNotesChange:handleTaskNotes,onOwnerChange:handleOwnerChange,onDueDateChange:handleDueDateChange,onAddTask:handleAddCustomTask,onDeleteTask:handleDeleteTask,role}),
+      tab==='checklist'&&e(Checklist,{tasks,onToggle:handleToggle,onNotesChange:handleTaskNotes,onTitleChange:handleTitleChange,onOwnerChange:handleOwnerChange,onDueDateChange:handleDueDateChange,onAddTask:handleAddCustomTask,onDeleteTask:handleDeleteTask,role}),
       tab==='inventory'&&e(Inventory,{inventory,onAdd:handleAddItem,onRemove:handleRemoveItem,onPhotosChange:handlePhotosChange,onNotesChange:handleInvNotes,role})));
 }
 
